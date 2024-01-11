@@ -1,4 +1,4 @@
-import {select} from "@inquirer/prompts"
+import { input, select, Separator } from "@inquirer/prompts"
 import "colors"
 import Conf from 'conf'
 import fs from "fs/promises"
@@ -7,7 +7,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 
 const config = new Conf({
     projectName: "modrinth-manage",
@@ -21,7 +20,7 @@ async function mainMenu () {
         message: "What would you like to do?".italic,
         choices: [
             {
-                name: 'Your Mod Lists',
+                name: 'Mod Lists',
                 value: 'lists',
             },
             {
@@ -33,7 +32,11 @@ async function mainMenu () {
                 value: 'options'
             }
         ],
-    }, {clearPromptOnDone: true})
+    }, { clearPromptOnDone: true })
+
+    if (selection == "lists") {
+        await listsMenu()
+    }
 
     if (selection == "options") {
         await optionsMenu()
@@ -46,25 +49,79 @@ async function optionsMenu () {
         message: "Which option would you like to change?".italic,
         choices: [
             {
+                name: `Downloads Path: ${config.get('downloadPath').brightGreen.bold}`,
+                value: 'downloadPath'
+            },
+            new Separator(),
+            {
                 name: 'Return',
                 value: 'return'
             }
         ]
-    }, {clearPromptOnDone: true})
+    }, { clearPromptOnDone: true })
+
+    if (selection == "downloadPath") {
+        const newPath = await input({
+            message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:'
+        }, {clearPromptOnDone: true})
+        if (newPath == "c") {
+            await optionsMenu()
+        } else {
+            config.set('downloadPath', newPath)
+            await optionsMenu()
+        }
+    }
+
+    if (selection == 'return') {
+        await mainMenu()
+    }
+}
+async function listsMenu () {
+    const selection = await select({
+        message: "Your Mod Lists".italic,
+        choices: [
+            {
+                name: `Your Lists`,
+                value: 'downloadPath'
+            },
+            new Separator(),
+            {
+                name: 'Create List',
+                value: 'create'
+            },
+            new Separator(),
+            {
+                name: 'Return',
+                value: 'return'
+            }
+        ]
+    }, { clearPromptOnDone: true })
+
+    if (selection == "downloadPath") {
+        const newPath = await input({
+            message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:'
+        }, {clearPromptOnDone: true})
+        if (newPath == "c") {
+            await optionsMenu()
+        } else {
+            config.set('downloadPath', newPath)
+            await optionsMenu()
+        }
+    }
 
     if (selection == 'return') {
         await mainMenu()
     }
 }
 
-async function main () {
+async function main() {
     console.clear()
 
     // Download path handling
     try {
-        await fs.opendir(config.get('downloadPath'))
+        const dir = await fs.opendir(config.get('downloadPath'))
     } catch (e) {
-        console.log("Directory Doesn't Exist")
+
     }
 
     // Main Menu
