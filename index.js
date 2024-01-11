@@ -11,7 +11,8 @@ const __dirname = path.dirname(__filename);
 const config = new Conf({
     projectName: "modrinth-manage",
     defaults: {
-        downloadPath: path.join(__dirname, 'downloads')
+        downloadPath: path.join(__dirname, 'downloads'),
+        modLists: []
     }
 })
 
@@ -76,6 +77,8 @@ async function optionsMenu () {
         await mainMenu()
     }
 }
+
+// LISTS MENUS
 async function listsMenu () {
     const selection = await select({
         message: "Your Mod Lists".italic,
@@ -97,16 +100,8 @@ async function listsMenu () {
         ]
     }, { clearPromptOnDone: true })
 
-    if (selection == "downloadPath") {
-        const newPath = await input({
-            message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:'
-        }, {clearPromptOnDone: true})
-        if (newPath == "c") {
-            await optionsMenu()
-        } else {
-            config.set('downloadPath', newPath)
-            await optionsMenu()
-        }
+    if (selection == "create") {
+        await createList()
     }
 
     if (selection == 'return') {
@@ -114,15 +109,27 @@ async function listsMenu () {
     }
 }
 
+async function createList () {
+    const name = await input({message: "Enter a name for your new mod list:"})
+
+    const currentLists = config.get('modLists')
+    const newList = {
+        name
+    }
+    config.set('modLists', [...currentLists, newList])
+    const currentLists2 = config.get('modLists')
+    console.log(currentLists2)
+}
+
 async function main() {
     console.clear()
 
     // Download path handling
-    try {
-        const dir = await fs.opendir(config.get('downloadPath'))
-    } catch (e) {
+    // try {
+    //     const dir = await fs.opendir(config.get('downloadPath'))
+    // } catch (e) {
 
-    }
+    // }
 
     // Main Menu
     await mainMenu()
