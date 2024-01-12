@@ -5,14 +5,16 @@ import Conf from 'conf'
 import fs from "fs/promises"
 import os from "os"
 import { nanoid } from "nanoid"
+import chalkAnimation from 'chalk-animation'
+import ora from "ora"
 
-import path from 'path';
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import path from 'path'
+import { fileURLToPath } from 'url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 import Directory from "inquirer-directory"
-inquirer.registerPrompt('directory', Directory);
+inquirer.registerPrompt('directory', Directory)
 
 const config = new Conf({
     projectName: "modrinth-manage",
@@ -60,7 +62,7 @@ function deleteList(id) {
 // | | | | | |  __/ | | | |_| \__ \
 // |_| |_| |_|\___|_| |_|\__,_|___/ 
 // Menus
-                                
+
 async function mainMenu() {
     const selection = await select({
         message: chalk.italic("What would you like to do?"),
@@ -145,11 +147,12 @@ async function listsMenu() {
         modListsOptions.push({
             name: modList.name,
             value: `list-${modList.id}`,
-            description: chalk.gray(`| ${modList.name} | ${modList.mods} mods |`)
+            description: chalk.dim(`| ${modList.name} | ${modList.mods} mods |`)
         })
     } // make them look nice for selection
 
     const choices = [
+        new Separator(),
         ...modListsOptions,
         new Separator(),
         {
@@ -206,12 +209,20 @@ async function viewList(list) {
     const foundList = modLists.filter((modList) => modList.id == list)[0]
 
     const selection = await select({
-        message: chalk.italic(`${foundList.name}`),
+        message: `${chalk.italic(foundList.name)} | ${foundList.mods} mods`,
         choices: [
             new Separator(),
             {
-                name: 'Edit Mods',
-                value: 'editmods'
+                name: 'View Mods',
+                value: 'view'
+            },
+            {
+                name: 'Add Mods',
+                value: 'add'
+            },
+            {
+                name: 'Remove Mods',
+                value: 'remove'
             },
             {
                 name: chalk.red('Delete List'),
@@ -246,14 +257,6 @@ async function viewList(list) {
 
 async function main() {
     console.clear()
-
-    // Download path handling
-    // try {
-    //     const dir = await fs.opendir(config.get('downloadPath'))
-    // } catch (e) {
-
-    // }
-
     // Main Menu
     await mainMenu()
 }
