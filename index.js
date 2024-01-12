@@ -58,10 +58,10 @@ function deleteList (id) {
     config.set('modLists', updatedList)
 }
 
-async function getAllMods (page) {
+async function getAllMods (page, query) {
     const spinner = ora('Loading...').start()
     try {
-        const res = await axios.get(`https://api.modrinth.com/v2/search?query=""&limit=20&offset=${page * 20}`)
+        const res = await axios.get(`https://api.modrinth.com/v2/search?query="${query == null ? "" : query}"&limit=20&offset=${page * 20}`)
         spinner.stop()
         return res.data
     } catch (e) {
@@ -302,16 +302,20 @@ async function addModsMenu (listId) {
     if (selection == "return") {
         return await viewList(listId)
     }
+    if (selection == "search") {
+        const query = await input({message: "Enter search query:"}, {clearPromptOnDone: true})
+        return await modrinthMenu(listId, 0, query)
+    }
 
     if (selection == "all") {
-        return await allModrinthMods(listId, 0, null)
+        return await modrinthMenu(listId, 0, null)
     }
 }
 
-async function allModrinthMods (listId, page, query) {
+async function modrinthMenu (listId, page, query) {
     let selections = []
     
-    const data = await getAllMods(page)
+    const data = await getAllMods(page, query)
     const options = []
     for (let mod of data.hits) {
         options.push({
@@ -340,6 +344,11 @@ async function allModrinthMods (listId, page, query) {
                 disabled: page == 0
             },
             {
+                name: chalk.italic.bold('Jump to Page'),
+                value: 'jump',
+                disabled: "(WIP)"
+            },
+            {
                 name: chalk.italic.bold('Return'),
                 value: 'return'
             }
@@ -349,12 +358,12 @@ async function allModrinthMods (listId, page, query) {
     
     if (selection == "next") {
         page++
-        return await allModrinthMods (listId, page)
+        return await modrinthMenu (listId, page, query)
     }
 
     if (selection == "previous") {
         page--
-        return await allModrinthMods (listId, page)
+        return await modrinthMenu (listId, page, query)
     }
 
     if (selection == "return") {
