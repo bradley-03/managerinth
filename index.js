@@ -22,8 +22,14 @@ const config = new Conf({
     }
 })
 
-
+//        _   _ _ 
+//       | | (_) |
+//  _   _| |_ _| |
+// | | | | __| | |
+// | |_| | |_| | |
+//  \__,_|\__|_|_|          
 // Util
+
 async function validateListName(name) {
     if (name.trim() === "") {
         return 'List name cannot be empty.'
@@ -42,15 +48,19 @@ async function validateListName(name) {
     return true
 }
 
-function deleteList (id) {
+function deleteList(id) {
     const currentLists = config.get('modLists')
     const updatedList = currentLists.filter((list) => list.id !== id)
 
     config.set('modLists', updatedList)
 }
 
-
+//  _ __ ___   ___ _  __ _   _ ___ 
+// | '_ ` _ \ / _ \ '_ \| | | / __|
+// | | | | | |  __/ | | | |_| \__ \
+// |_| |_| |_|\___|_| |_|\__,_|___/ 
 // Menus
+                                
 async function mainMenu() {
     const selection = await select({
         message: "What would you like to do?".italic,
@@ -113,7 +123,14 @@ async function optionsMenu() {
     }
 }
 
-// LISTS MENUS
+//  _ _     _       
+// | (_)   | |      
+// | |_ ___| |_ ___ 
+// | | / __| __/ __|
+// | | \__ \ |_\__ \
+// |_|_|___/\__|___/
+// Lists
+
 async function listsMenu() {
     const modLists = config.get('modLists')
 
@@ -191,6 +208,7 @@ async function viewList(list) {
     const selection = await select({
         message: `${foundList.name}`.italic,
         choices: [
+            new Separator(),
             {
                 name: 'Edit Mods',
                 value: 'editmods'
@@ -199,6 +217,7 @@ async function viewList(list) {
                 name: 'Delete List'.red,
                 value: 'delete'
             },
+            new Separator(),
             {
                 name: 'Return',
                 value: 'return'
@@ -207,10 +226,9 @@ async function viewList(list) {
     }, { clearPromptOnDone: true })
 
     if (selection == "delete") {
-        
         const confirmation = await confirm({
             message: `Are you sure you want to delete ${foundList.name.brightGreen}?`
-        }, {clearPromptOnDone: true})
+        }, { clearPromptOnDone: true })
 
         if (confirmation == true) {
             deleteList(foundList.id)
@@ -222,6 +240,8 @@ async function viewList(list) {
 
     return await listsMenu()
 }
+
+
 
 
 async function main() {
