@@ -28,8 +28,8 @@ async function validateListName(name) {
     if (name.trim()==="") {
         return 'List name cannot be empty.'
     }
-    if (name.length > 32) {
-        return 'List name cannot exceed 32 characters.'
+    if (name.length > 24) {
+        return 'List name cannot exceed 24 characters.'
     }
     
     const lists = config.get('modLists')
@@ -108,20 +108,21 @@ async function optionsMenu() {
 
 // LISTS MENUS
 async function listsMenu() {
+    const modLists = config.get('modLists')
+    const choices = [new Separator(), ...modLists, new Separator (),
+        {
+            name: 'Create List'.italic,
+            value: 'create'
+        },
+        new Separator (),
+        {
+            name: 'Return'.italic,
+            value: 'return'
+        }]
+
     const selection = await select({
         message: "Your Mod Lists".italic,
-        choices: [
-            new Separator(),
-            {
-                name: 'Create List',
-                value: 'create'
-            },
-            new Separator(),
-            {
-                name: 'Return',
-                value: 'return'
-            }
-        ]
+        choices: choices,
     }, { clearPromptOnDone: true })
 
     if (selection == "create") {
@@ -141,10 +142,11 @@ async function createList() {
 
     const currentLists = config.get('modLists')
     const newList = {
-        name
+        name: name.trim(),
+        mods: 0,
     }
     config.set('modLists', [...currentLists, newList])
-    const currentLists2 = config.get('modLists')
+
     await listsMenu()
 }
 
