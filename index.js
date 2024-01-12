@@ -4,7 +4,7 @@ import "colors"
 import Conf from 'conf'
 import fs from "fs/promises"
 import os from "os"
-import ShortUniqueId from "short-unique-id"
+import { nanoid } from "nanoid"
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -158,7 +158,7 @@ async function createList() {
 
     const currentLists = config.get('modLists')
     const newList = {
-        id: new ShortUniqueId({ length: 8 }),
+        id: nanoid(),
         name: name.trim(),
         mods: 0,
     }
@@ -166,6 +166,24 @@ async function createList() {
 
     await listsMenu()
 }
+
+async function viewList(list) {
+    const selection = await select({
+        message: "Which option would you like to change?".italic,
+        choices: [
+            {
+                name: `Downloads Path: ${config.get('downloadPath').brightGreen.bold}`,
+                value: 'downloadPath'
+            },
+            new Separator(),
+            {
+                name: 'Return',
+                value: 'return'
+            }
+        ]
+    }, { clearPromptOnDone: true })
+}
+
 
 async function main() {
     console.clear()
