@@ -4,6 +4,7 @@ import "colors"
 import Conf from 'conf'
 import fs from "fs/promises"
 import os from "os"
+import ShortUniqueId from "short-unique-id"
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -25,13 +26,13 @@ const config = new Conf({
 // Util
 async function validateListName(name) {
 
-    if (name.trim()==="") {
+    if (name.trim() === "") {
         return 'List name cannot be empty.'
     }
     if (name.length > 24) {
         return 'List name cannot exceed 24 characters.'
     }
-    
+
     const lists = config.get('modLists')
 
     for (let list of lists) {
@@ -109,16 +110,31 @@ async function optionsMenu() {
 // LISTS MENUS
 async function listsMenu() {
     const modLists = config.get('modLists')
-    const choices = [new Separator(), ...modLists, new Separator (),
+
+    const modListsOptions = []
+    for (let modList of modLists) {
+        modListsOptions.push({
+            name: modList.name,
+            value: `list-${modList.id}`,
+            description: `| ${modList.name} | ${modList.mods} mods |`.gray
+        })
+    }
+
+    const choices = [
+        ...modListsOptions,
+        new Separator(),
         {
             name: 'Create List'.italic,
             value: 'create'
         },
-        new Separator (),
+        new Separator(),
         {
             name: 'Return'.italic,
             value: 'return'
-        }]
+        },
+        new Separator()
+    ]
+
 
     const selection = await select({
         message: "Your Mod Lists".italic,
@@ -138,10 +154,11 @@ async function createList() {
     const name = await input({
         message: "Enter a name for your new mod list:",
         validate: validateListName,
-    }, {clearPromptOnDone: true})
+    }, { clearPromptOnDone: true })
 
     const currentLists = config.get('modLists')
     const newList = {
+        id: new ShortUniqueId({ length: 8 }),
         name: name.trim(),
         mods: 0,
     }
