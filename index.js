@@ -1,12 +1,17 @@
 import { input, select, Separator } from "@inquirer/prompts"
+import inquirer from 'inquirer'
 import "colors"
 import Conf from 'conf'
 import fs from "fs/promises"
+import os from "os"
 
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+import Directory from "inquirer-directory"
+inquirer.registerPrompt('directory', Directory);
 
 const config = new Conf({
     projectName: "modrinth-manage",
@@ -16,7 +21,22 @@ const config = new Conf({
     }
 })
 
-async function mainMenu () {
+
+// Util
+function validateListName(name) {
+    const lists = config.get('modLists')
+
+    for (let list in lists) {
+        if (list.name == name) {
+            return `A list with the name '${name}' already exists! Please choose another:`
+        }
+    }
+    return true
+}
+
+
+// Menus
+async function mainMenu() {
     const selection = await select({
         message: "What would you like to do?".italic,
         choices: [
@@ -45,7 +65,7 @@ async function mainMenu () {
 
 }
 
-async function optionsMenu () {
+async function optionsMenu() {
     const selection = await select({
         message: "Which option would you like to change?".italic,
         choices: [
@@ -64,7 +84,7 @@ async function optionsMenu () {
     if (selection == "downloadPath") {
         const newPath = await input({
             message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:'
-        }, {clearPromptOnDone: true})
+        }, { clearPromptOnDone: true })
         if (newPath == "c") {
             await optionsMenu()
         } else {
@@ -79,14 +99,10 @@ async function optionsMenu () {
 }
 
 // LISTS MENUS
-async function listsMenu () {
+async function listsMenu() {
     const selection = await select({
         message: "Your Mod Lists".italic,
         choices: [
-            {
-                name: `Your Lists`,
-                value: 'downloadPath'
-            },
             new Separator(),
             {
                 name: 'Create List',
@@ -109,8 +125,11 @@ async function listsMenu () {
     }
 }
 
-async function createList () {
-    const name = await input({message: "Enter a name for your new mod list:"})
+async function createList() {
+    const name = await input({
+        message: "Enter a name for your new mod list:",
+        validate: validateListName,
+    })
 
     const currentLists = config.get('modLists')
     const newList = {
@@ -119,6 +138,7 @@ async function createList () {
     config.set('modLists', [...currentLists, newList])
     const currentLists2 = config.get('modLists')
     console.log(currentLists2)
+    await listsMenu()
 }
 
 async function main() {

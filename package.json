@@ -21,6 +21,9 @@
   "dependencies": {
     "@inquirer/prompts": "^3.3.0",
     "colors": "^1.4.0",
-    "conf": "^12.0.0"
+    "conf": "^12.0.0",
+    "inquirer": "^6.5.2",
+    "inquirer-directory": "^2.2.0",
+    "ora": "^8.0.1"
   }
 }
