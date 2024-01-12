@@ -61,7 +61,7 @@ function deleteList (id) {
 async function getAllMods (page) {
     const spinner = ora('Loading...').start()
     try {
-        const res = await axios.get(`https://api.modrinth.com/v2/search?limit=20&offset=${page * 20}`)
+        const res = await axios.get(`https://api.modrinth.com/v2/search?query=""&limit=20&offset=${page * 20}`)
         spinner.stop()
         return res.data
     } catch (e) {
@@ -304,25 +304,27 @@ async function addModsMenu (listId) {
     }
 
     if (selection == "all") {
-        return await allModrinthMods(listId, 0)
+        return await allModrinthMods(listId, 0, null)
     }
 }
 
-async function allModrinthMods (listId, page) {
+async function allModrinthMods (listId, page, query) {
     let selections = []
     
-    const mods = await getAllMods(page)
+    const data = await getAllMods(page)
     const options = []
-    for (let mod of mods.hits) {
+    for (let mod of data.hits) {
         options.push({
             name: mod.title,
             value: mod['project_id'],
-            description: chalk.green(mod.description)
+            description: `${chalk.yellow(mod.downloads+ " downloads") } | ${chalk.magenta(mod.versions[mod.versions.length - 1])} | ${chalk.green(mod.description)}`
         })
     }
 
+    const maxPage = Math.ceil(data.total_hits / 20)
+
     const selection = await select({
-        message: 'Select mods from the list to add:',
+        message: `Page ${page + 1} of ${maxPage} | Select mods from the list to add:`,
         choices: [
             new Separator(),
             ...options,
@@ -330,11 +332,12 @@ async function allModrinthMods (listId, page) {
             {
                 name: chalk.italic.bold('Next Page'),
                 value: 'next',
+                disabled: page + 1 == maxPage // bad fix
             },
             {
                 name: chalk.italic.bold('Previous Page'),
                 value: 'previous',
-                disabled: !page > 0
+                disabled: page == 0
             },
             {
                 name: chalk.italic.bold('Return'),
