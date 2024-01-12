@@ -1,4 +1,4 @@
-import { input, select, Separator } from "@inquirer/prompts"
+import { input, select, Separator, confirm } from "@inquirer/prompts"
 import inquirer from 'inquirer'
 import "colors"
 import Conf from 'conf'
@@ -40,6 +40,13 @@ async function validateListName(name) {
         }
     }
     return true
+}
+
+function deleteList (id) {
+    const currentLists = config.get('modLists')
+    const updatedList = currentLists.filter((list) => list.id !== id)
+
+    config.set('modLists', updatedList)
 }
 
 
@@ -111,6 +118,12 @@ async function listsMenu() {
     const modLists = config.get('modLists')
 
     const modListsOptions = []
+    if (modLists.length == 0) {
+        modListsOptions.push({
+            name: ' ',
+            disabled: 'No lists found!'
+        })
+    }
     for (let modList of modLists) {
         modListsOptions.push({
             name: modList.name,
@@ -193,7 +206,19 @@ async function viewList(list) {
         ],
     }, { clearPromptOnDone: true })
 
+    if (selection == "delete") {
+        
+        const confirmation = await confirm({
+            message: `Are you sure you want to delete ${foundList.name.brightGreen}?`
+        }, {clearPromptOnDone: true})
 
+        if (confirmation == true) {
+            deleteList(foundList.id)
+            return await listsMenu()
+        } else {
+            return await (viewList(foundList.id))
+        }
+    }
 
     await listsMenu()
 }
