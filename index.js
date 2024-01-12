@@ -71,11 +71,11 @@ async function mainMenu() {
     }, { clearPromptOnDone: true })
 
     if (selection == "lists") {
-        await listsMenu()
+        return await listsMenu()
     }
 
     if (selection == "options") {
-        await optionsMenu()
+        return await optionsMenu()
     }
 
 }
@@ -101,15 +101,15 @@ async function optionsMenu() {
             message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:'
         }, { clearPromptOnDone: true })
         if (newPath == "c") {
-            await optionsMenu()
+            return await optionsMenu()
         } else {
             config.set('downloadPath', newPath)
-            await optionsMenu()
+            return await optionsMenu()
         }
     }
 
     if (selection == 'return') {
-        await mainMenu()
+        return await mainMenu()
     }
 }
 
@@ -155,15 +155,15 @@ async function listsMenu() {
 
     if (selection.includes('list-')) { // check if selected a list
         const listId = selection.substring(5, selection.length) // parse list id
-        await viewList(listId)
+        return await viewList(listId)
     }
 
     if (selection == "create") {
-        await createList()
+        return await createList()
     }
 
     if (selection == 'return') {
-        await mainMenu()
+        return await mainMenu()
     }
 }
 
@@ -181,7 +181,7 @@ async function createList() {
     }
     config.set('modLists', [...currentLists, newList])
 
-    await listsMenu()
+    return await listsMenu()
 }
 
 async function viewList(list) {
@@ -220,7 +220,7 @@ async function viewList(list) {
         }
     }
 
-    await listsMenu()
+    return await listsMenu()
 }
 
 
