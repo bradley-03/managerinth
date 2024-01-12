@@ -1,6 +1,6 @@
 import { input, select, Separator, confirm } from "@inquirer/prompts"
 import inquirer from 'inquirer'
-import "colors"
+import chalk from 'chalk';
 import Conf from 'conf'
 import fs from "fs/promises"
 import os from "os"
@@ -63,7 +63,7 @@ function deleteList(id) {
                                 
 async function mainMenu() {
     const selection = await select({
-        message: "What would you like to do?".italic,
+        message: chalk.italic("What would you like to do?"),
         choices: [
             {
                 name: 'Mod Lists',
@@ -92,10 +92,10 @@ async function mainMenu() {
 
 async function optionsMenu() {
     const selection = await select({
-        message: "Which option would you like to change?".italic,
+        message: chalk.italic("Which option would you like to change?"),
         choices: [
             {
-                name: `Downloads Path: ${config.get('downloadPath').brightGreen.bold}`,
+                name: `Downloads Path: ${chalk.bold.green(config.get('downloadPath'))}`,
                 value: 'downloadPath'
             },
             new Separator(),
@@ -145,7 +145,7 @@ async function listsMenu() {
         modListsOptions.push({
             name: modList.name,
             value: `list-${modList.id}`,
-            description: `| ${modList.name} | ${modList.mods} mods |`.gray
+            description: chalk.gray(`| ${modList.name} | ${modList.mods} mods |`)
         })
     } // make them look nice for selection
 
@@ -153,19 +153,19 @@ async function listsMenu() {
         ...modListsOptions,
         new Separator(),
         {
-            name: 'Create List'.italic,
+            name: chalk.italic('Create List'),
             value: 'create'
         },
         new Separator(),
         {
-            name: 'Return'.italic,
+            name: chalk.italic('Return'),
             value: 'return'
         },
         new Separator()
     ] // merge list options with static options
 
     const selection = await select({
-        message: "Your Mod Lists".italic,
+        message: chalk.italic("Your Mod Lists"),
         choices: choices,
         pageSize: 11,
     }, { clearPromptOnDone: true })
@@ -206,7 +206,7 @@ async function viewList(list) {
     const foundList = modLists.filter((modList) => modList.id == list)[0]
 
     const selection = await select({
-        message: `${foundList.name}`.italic,
+        message: chalk.italic(`${foundList.name}`),
         choices: [
             new Separator(),
             {
@@ -214,7 +214,7 @@ async function viewList(list) {
                 value: 'editmods'
             },
             {
-                name: 'Delete List'.red,
+                name: chalk.red('Delete List'),
                 value: 'delete'
             },
             new Separator(),
@@ -227,7 +227,7 @@ async function viewList(list) {
 
     if (selection == "delete") {
         const confirmation = await confirm({
-            message: `Are you sure you want to delete ${foundList.name.brightGreen}?`
+            message: `Are you sure you want to delete ${chalk.green.bold(foundList.name)}?`
         }, { clearPromptOnDone: true })
 
         if (confirmation == true) {
