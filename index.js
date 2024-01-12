@@ -25,7 +25,6 @@ const config = new Conf({
 
 // Util
 async function validateListName(name) {
-
     if (name.trim() === "") {
         return 'List name cannot be empty.'
     }
@@ -118,7 +117,7 @@ async function listsMenu() {
             value: `list-${modList.id}`,
             description: `| ${modList.name} | ${modList.mods} mods |`.gray
         })
-    }
+    } // make them look nice for selection
 
     const choices = [
         ...modListsOptions,
@@ -133,13 +132,18 @@ async function listsMenu() {
             value: 'return'
         },
         new Separator()
-    ]
-
+    ] // merge list options with static options
 
     const selection = await select({
         message: "Your Mod Lists".italic,
         choices: choices,
+        pageSize: 11,
     }, { clearPromptOnDone: true })
+
+    if (selection.includes('list-')) { // check if selected a list
+        const listId = selection.substring(5, selection.length) // parse list id
+        await viewList(listId)
+    }
 
     if (selection == "create") {
         await createList()
@@ -168,20 +172,30 @@ async function createList() {
 }
 
 async function viewList(list) {
+    const modLists = config.get('modLists')
+    const foundList = modLists.filter((modList) => modList.id == list)[0]
+
     const selection = await select({
-        message: "Which option would you like to change?".italic,
+        message: `${foundList.name}`.italic,
         choices: [
             {
-                name: `Downloads Path: ${config.get('downloadPath').brightGreen.bold}`,
-                value: 'downloadPath'
+                name: 'Edit Mods',
+                value: 'editmods'
             },
-            new Separator(),
+            {
+                name: 'Delete List'.red,
+                value: 'delete'
+            },
             {
                 name: 'Return',
                 value: 'return'
-            }
-        ]
+            },
+        ],
     }, { clearPromptOnDone: true })
+
+
+
+    await listsMenu()
 }
 
 
