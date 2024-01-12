@@ -23,12 +23,20 @@ const config = new Conf({
 
 
 // Util
-function validateListName(name) {
+async function validateListName(name) {
+
+    if (name.trim()==="") {
+        return 'List name cannot be empty.'
+    }
+    if (name.length > 32) {
+        return 'List name cannot exceed 32 characters.'
+    }
+    
     const lists = config.get('modLists')
 
-    for (let list in lists) {
+    for (let list of lists) {
         if (list.name == name) {
-            return `A list with the name '${name}' already exists! Please choose another:`
+            return `A list with the name '${name}' already exists.`
         }
     }
     return true
@@ -129,7 +137,7 @@ async function createList() {
     const name = await input({
         message: "Enter a name for your new mod list:",
         validate: validateListName,
-    })
+    }, {clearPromptOnDone: true})
 
     const currentLists = config.get('modLists')
     const newList = {
@@ -137,7 +145,6 @@ async function createList() {
     }
     config.set('modLists', [...currentLists, newList])
     const currentLists2 = config.get('modLists')
-    console.log(currentLists2)
     await listsMenu()
 }
 
