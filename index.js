@@ -7,6 +7,7 @@ import os from "os"
 import { nanoid } from "nanoid"
 import chalkAnimation from 'chalk-animation'
 import ora from "ora"
+import axios from "axios"
 
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -32,7 +33,7 @@ const config = new Conf({
 //  \__,_|\__|_|_|          
 // Util
 
-async function validateListName(name) {
+async function validateListName (name) {
     if (name.trim() === "") {
         return 'List name cannot be empty.'
     }
@@ -50,12 +51,25 @@ async function validateListName(name) {
     return true
 }
 
-function deleteList(id) {
+function deleteList (id) {
     const currentLists = config.get('modLists')
     const updatedList = currentLists.filter((list) => list.id !== id)
 
     config.set('modLists', updatedList)
 }
+
+async function getAllMods (page) {
+    const spinner = ora('Loading...').start()
+    try {
+        const res = await axios.get(`https://api.modrinth.com/v2/search?limit=20&offset=${page * 20}`)
+        spinner.stop()
+        return res.data
+    } catch (e) {
+        spinner.stop()
+        return await listsMenu()
+    }
+}
+
 
 //  _ __ ___   ___ _  __ _   _ ___ 
 // | '_ ` _ \ / _ \ '_ \| | | / __|
@@ -249,10 +263,102 @@ async function viewList(list) {
         }
     }
 
+    if (selection == "add") {
+        return await addModsMenu(foundList.id)
+    }
+
     return await listsMenu()
 }
 
+//                      _     
+//                     | |    
+//  _ __ ___   ___   __| |___ 
+// | '_ ` _ \ / _ \ / _` / __|
+// | | | | | | (_) | (_| \__ \
+// |_| |_| |_|\___/ \__,_|___/
+// Mods
+                           
+async function addModsMenu (listId) {
+    const selection = await select({
+        message: chalk.italic('What would you like to do?'),
+        choices: [
+            new Separator(),
+            {
+                name: 'All Modrinth Mods',
+                value: 'all'
+            },
+            {
+                name: 'Search Modrinth',
+                value: 'search'
+            },
+            new Separator(),
+            {
+                name: 'Return',
+                value: 'return'
+            }
+        ],
+    }, { clearPromptOnDone: true })
 
+    if (selection == "return") {
+        return await viewList(listId)
+    }
+
+    if (selection == "all") {
+        return await allModrinthMods(listId, 0)
+    }
+}
+
+async function allModrinthMods (listId, page) {
+    let selections = []
+    
+    const mods = await getAllMods(page)
+    const options = []
+    for (let mod of mods.hits) {
+        options.push({
+            name: mod.title,
+            value: mod['project_id'],
+            description: chalk.green(mod.description)
+        })
+    }
+
+    const selection = await select({
+        message: 'Select mods from the list to add:',
+        choices: [
+            new Separator(),
+            ...options,
+            new Separator(),
+            {
+                name: chalk.italic.bold('Next Page'),
+                value: 'next',
+            },
+            {
+                name: chalk.italic.bold('Previous Page'),
+                value: 'previous',
+                disabled: !page > 0
+            },
+            {
+                name: chalk.italic.bold('Return'),
+                value: 'return'
+            }
+        ],
+        pageSize: 12
+    }, {clearPromptOnDone: true})
+    
+    if (selection == "next") {
+        page++
+        return await allModrinthMods (listId, page)
+    }
+
+    if (selection == "previous") {
+        page--
+        return await allModrinthMods (listId, page)
+    }
+
+    if (selection == "return") {
+        return await addModsMenu(listId)
+    }
+
+}
 
 
 async function main() {
