@@ -252,6 +252,11 @@ async function viewList(list) {
                 name: 'Remove Mods',
                 value: 'remove'
             },
+            new Separator(),
+            {
+                name: 'Change Name',
+                value: 'edit'
+            },
             {
                 name: chalk.red('Delete List'),
                 value: 'delete'
@@ -262,6 +267,7 @@ async function viewList(list) {
                 value: 'return'
             },
         ],
+        pageSize: 13
     }, { clearPromptOnDone: true })
 
     if (selection == "delete") {
@@ -279,6 +285,19 @@ async function viewList(list) {
 
     if (selection == "add") {
         return await addModsMenu(foundList.id)
+    }
+
+    if (selection == "edit") {
+        const name = await input({
+            message: `Enter a new name for ${chalk.green.bold(foundList.name)}:`,
+            validate: validateListName,
+        }, { clearPromptOnDone: true })
+        updateList(foundList.id, {
+            ...foundList,
+            name
+        })
+
+        return await viewList(foundList.id)
     }
 
     return await listsMenu()
