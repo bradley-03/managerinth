@@ -329,6 +329,8 @@ async function addModsMenu(listId) {
 let modrinthMenuSelection = []
 async function modrinthMenu(listId, page, query, cursor) {
     const data = await getModrinth(page, query)
+    const foundList = getList(listId)
+
     const options = []
     if (data.hits.length == 0) {
         options.push({
@@ -340,7 +342,8 @@ async function modrinthMenu(listId, page, query, cursor) {
         options.push({
             name: modrinthMenuSelection.includes(mod.project_id) ? chalk.cyan(mod.title) : mod.title,
             value: `mod-${mod['project_id']}`,
-            description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`
+            description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`,
+            disabled: foundList.mods.includes(mod.project_id) ? "(Already added)" : false
         })
     }
 
@@ -406,7 +409,6 @@ async function modrinthMenu(listId, page, query, cursor) {
     }
 
     if (selection == "confirm") {
-        const foundList = getList(listId)
         const confirmation = await confirm({
             message: `Are you sure you want to add ${modrinthMenuSelection.length} mods to ${foundList.name}?`
         }, { clearPromptOnDone: true })
