@@ -58,7 +58,21 @@ function deleteList (id) {
     config.set('modLists', updatedList)
 }
 
-async function getAllMods (page, query) {
+function updateList (listId, data) {
+    const allLists = config.get('modLists')
+    const reqListIndex = allLists.findIndex((list) => list.id == listId)
+    allLists[reqListIndex] = data
+
+    config.set('modLists', allLists)
+}
+
+function getList (listId) {
+    const allLists = config.get('modLists')
+    const foundList = allLists.filter((list) => list.id == listId)[0]
+    return foundList
+}
+
+async function getModrinth (page, query) {
     const spinner = ora('Loading...').start()
     try {
         const res = await axios.get(`https://api.modrinth.com/v2/search?query="${query == null ? "" : query}"&limit=20&offset=${page * 20}`)
@@ -161,7 +175,7 @@ async function listsMenu() {
         modListsOptions.push({
             name: modList.name,
             value: `list-${modList.id}`,
-            description: chalk.dim(`| ${modList.name} | ${modList.mods} mods |`)
+            description: chalk.dim(`| ${modList.name} | ${modList.modCount} mods |`)
         })
     } // make them look nice for selection
 
@@ -211,7 +225,8 @@ async function createList() {
     const newList = {
         id: nanoid(),
         name: name.trim(),
-        mods: 0,
+        modCount: 0,
+        mods: []
     }
     config.set('modLists', [...currentLists, newList])
 
@@ -219,11 +234,10 @@ async function createList() {
 }
 
 async function viewList(list) {
-    const modLists = config.get('modLists')
-    const foundList = modLists.filter((modList) => modList.id == list)[0]
+    const foundList = getList(list)
 
     const selection = await select({
-        message: `${chalk.italic(foundList.name)} | ${foundList.mods} mods`,
+        message: `${chalk.italic(foundList.name)} | ${foundList.modCount} mods`,
         choices: [
             new Separator(),
             {
@@ -314,7 +328,7 @@ async function addModsMenu (listId) {
 
 let modrinthMenuSelection = []
 async function modrinthMenu (listId, page, query, cursor) {
-    const data = await getAllMods(page, query)
+    const data = await getModrinth(page, query)
     const options = []
     if (data.hits.length == 0) {
         options.push({
@@ -338,6 +352,11 @@ async function modrinthMenu (listId, page, query, cursor) {
             new Separator(),
             ...options,
             new Separator(),
+            {
+                name: chalk.italic.bold('Confirm'),
+                value: 'confirm',
+                disabled: !modrinthMenuSelection.length > 0
+            },
             {
                 name: chalk.italic.bold('Next Page'),
                 value: 'next',
@@ -388,6 +407,24 @@ async function modrinthMenu (listId, page, query, cursor) {
     if (selection == "return") {
         modrinthMenuSelection = []
         return await addModsMenu(listId)
+    }
+
+    if (selection == "confirm") {
+        const foundList = getList(listId)
+        const confirmation = await confirm({
+            message: `Are you sure you want to add ${modrinthMenuSelection.length} mods to ${foundList.name}?`
+        }, { clearPromptOnDone: true })
+
+        if (confirmation == true) {
+            updateList(listId, {
+                ...foundList,
+                mods: modrinthMenuSelection
+            })
+            modrinthMenuSelection = []
+            return await viewList(listId)
+        } else {
+            return await modrinthMenu(listId, page, query)
+        }
     }
 
 }
