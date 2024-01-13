@@ -418,7 +418,8 @@ async function modrinthMenu (listId, page, query, cursor) {
         if (confirmation == true) {
             updateList(listId, {
                 ...foundList,
-                mods: modrinthMenuSelection
+                mods: modrinthMenuSelection,
+                modCount: foundList.modCount += modrinthMenuSelection.length
             })
             modrinthMenuSelection = []
             return await viewList(listId)
