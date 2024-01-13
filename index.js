@@ -1,6 +1,6 @@
 import { input, select, Separator, confirm } from "@inquirer/prompts"
 import inquirer from 'inquirer'
-import chalk from 'chalk';
+import chalk, { modifierNames } from 'chalk';
 import Conf from 'conf'
 import fs from "fs/promises"
 import os from "os"
@@ -313,7 +313,7 @@ async function addModsMenu (listId) {
 }
 
 let modrinthMenuSelection = []
-async function modrinthMenu (listId, page, query) {
+async function modrinthMenu (listId, page, query, cursor) {
     const data = await getAllMods(page, query)
     const options = []
     if (data.hits.length == 0) {
@@ -324,7 +324,7 @@ async function modrinthMenu (listId, page, query) {
     }
     for (let mod of data.hits) {
         options.push({
-            name: mod.title,
+            name: modrinthMenuSelection.includes(mod.project_id) ? chalk.cyan(mod.title) : mod.title,
             value: `mod-${mod['project_id']}`,
             description: `${chalk.yellow(mod.downloads+ " downloads") } | ${chalk.magenta(mod.versions[mod.versions.length - 1])} | ${chalk.green(mod.description)}`
         })
@@ -341,7 +341,7 @@ async function modrinthMenu (listId, page, query) {
             {
                 name: chalk.italic.bold('Next Page'),
                 value: 'next',
-                disabled: page + 1 == maxPage | page == 0
+                disabled: page + 1 == maxPage
             },
             {
                 name: chalk.italic.bold('Previous Page'),
@@ -358,21 +358,31 @@ async function modrinthMenu (listId, page, query) {
                 value: 'return'
             }
         ],
-        pageSize: 12
+        pageSize: 12,
+        default: cursor
     }, {clearPromptOnDone: true})
     
     if (selection.includes('mod-')) {
+        const modId = selection.substring(4, selection.length)
+        if (modrinthMenuSelection.includes(modId)) {
+            const updatedArr = modrinthMenuSelection.filter((mod) => mod !== modId)
+            modrinthMenuSelection = updatedArr
 
+            return await modrinthMenu(listId, page, query, selection)
+        }
+
+        modrinthMenuSelection.push(modId)
+        return await modrinthMenu(listId, page, query, selection)
     }
 
     if (selection == "next") {
         page++
-        return await modrinthMenu (listId, page, query)
+        return await modrinthMenu (listId, page, query, selection)
     }
 
     if (selection == "previous") {
         page--
-        return await modrinthMenu (listId, page, query)
+        return await modrinthMenu (listId, page, query, selection)
     }
 
     if (selection == "return") {
