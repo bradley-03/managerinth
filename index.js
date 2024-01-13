@@ -343,7 +343,7 @@ async function modrinthMenu(listId, page, query, cursor) {
             name: modrinthMenuSelection.includes(mod.project_id) ? chalk.cyan(mod.title) : mod.title,
             value: `mod-${mod['project_id']}`,
             description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`,
-            disabled: foundList.mods.includes(mod.project_id) ? "(Already added)" : false
+            disabled: foundList.mods.includes(mod.project_id) ? "(Already Added)" : false
         })
     }
 
