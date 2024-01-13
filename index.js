@@ -33,7 +33,7 @@ const config = new Conf({
 //  \__,_|\__|_|_|          
 // Util
 
-async function validateListName (name) {
+async function validateListName(name) {
     if (name.trim() === "") {
         return 'List name cannot be empty.'
     }
@@ -51,14 +51,14 @@ async function validateListName (name) {
     return true
 }
 
-function deleteList (id) {
+function deleteList(id) {
     const currentLists = config.get('modLists')
     const updatedList = currentLists.filter((list) => list.id !== id)
 
     config.set('modLists', updatedList)
 }
 
-function updateList (listId, data) {
+function updateList(listId, data) {
     const allLists = config.get('modLists')
     const reqListIndex = allLists.findIndex((list) => list.id == listId)
     allLists[reqListIndex] = data
@@ -66,13 +66,13 @@ function updateList (listId, data) {
     config.set('modLists', allLists)
 }
 
-function getList (listId) {
+function getList(listId) {
     const allLists = config.get('modLists')
     const foundList = allLists.filter((list) => list.id == listId)[0]
     return foundList
 }
 
-async function getModrinth (page, query) {
+async function getModrinth(page, query) {
     const spinner = ora('Loading...').start()
     try {
         const res = await axios.get(`https://api.modrinth.com/v2/search?query="${query == null ? "" : query}"&limit=20&offset=${page * 20}`)
@@ -291,8 +291,8 @@ async function viewList(list) {
 // | | | | | | (_) | (_| \__ \
 // |_| |_| |_|\___/ \__,_|___/
 // Mods
-                           
-async function addModsMenu (listId) {
+
+async function addModsMenu(listId) {
     const selection = await select({
         message: chalk.italic('What would you like to do?'),
         choices: [
@@ -317,7 +317,7 @@ async function addModsMenu (listId) {
         return await viewList(listId)
     }
     if (selection == "search") {
-        const query = await input({message: "Enter search query:"}, {clearPromptOnDone: true})
+        const query = await input({ message: "Enter search query:" }, { clearPromptOnDone: true })
         return await modrinthMenu(listId, 0, query)
     }
 
@@ -327,7 +327,7 @@ async function addModsMenu (listId) {
 }
 
 let modrinthMenuSelection = []
-async function modrinthMenu (listId, page, query, cursor) {
+async function modrinthMenu(listId, page, query, cursor) {
     const data = await getModrinth(page, query)
     const options = []
     if (data.hits.length == 0) {
@@ -340,7 +340,7 @@ async function modrinthMenu (listId, page, query, cursor) {
         options.push({
             name: modrinthMenuSelection.includes(mod.project_id) ? chalk.cyan(mod.title) : mod.title,
             value: `mod-${mod['project_id']}`,
-            description: `${chalk.yellowBright(mod.downloads+ " downloads") } | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`
+            description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`
         })
     }
 
@@ -353,11 +353,6 @@ async function modrinthMenu (listId, page, query, cursor) {
             ...options,
             new Separator(),
             {
-                name: chalk.italic.bold('Confirm'),
-                value: 'confirm',
-                disabled: !modrinthMenuSelection.length > 0
-            },
-            {
                 name: chalk.italic.bold('Next Page'),
                 value: 'next',
                 disabled: page + 1 == maxPage
@@ -367,10 +362,11 @@ async function modrinthMenu (listId, page, query, cursor) {
                 value: 'previous',
                 disabled: page == 0
             },
+            new Separator(),
             {
-                name: chalk.italic.bold('Jump to Page'),
-                value: 'jump',
-                disabled: "(WIP)"
+                name: chalk.italic.bold('Confirm'),
+                value: 'confirm',
+                disabled: !modrinthMenuSelection.length > 0
             },
             {
                 name: chalk.italic.bold('Return'),
@@ -379,8 +375,8 @@ async function modrinthMenu (listId, page, query, cursor) {
         ],
         pageSize: 12,
         default: cursor
-    }, {clearPromptOnDone: true})
-    
+    }, { clearPromptOnDone: true })
+
     if (selection.includes('mod-')) {
         const modId = selection.substring(4, selection.length)
         if (modrinthMenuSelection.includes(modId)) {
@@ -396,12 +392,12 @@ async function modrinthMenu (listId, page, query, cursor) {
 
     if (selection == "next") {
         page++
-        return await modrinthMenu (listId, page, query, selection)
+        return await modrinthMenu(listId, page, query, selection)
     }
 
     if (selection == "previous") {
         page--
-        return await modrinthMenu (listId, page, query, selection)
+        return await modrinthMenu(listId, page, query, selection)
     }
 
     if (selection == "return") {
