@@ -317,6 +317,12 @@ async function modrinthMenu (listId, page, query) {
     
     const data = await getAllMods(page, query)
     const options = []
+    if (data.hits.length == 0) {
+        options.push({
+            name: ' ',
+            disabled: `No mods matching "${query}" found!`
+        })
+    }
     for (let mod of data.hits) {
         options.push({
             name: mod.title,
@@ -336,7 +342,7 @@ async function modrinthMenu (listId, page, query) {
             {
                 name: chalk.italic.bold('Next Page'),
                 value: 'next',
-                disabled: page + 1 == maxPage // bad fix
+                disabled: page + 1 == maxPage | page == 0
             },
             {
                 name: chalk.italic.bold('Previous Page'),
