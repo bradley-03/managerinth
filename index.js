@@ -312,9 +312,8 @@ async function addModsMenu (listId) {
     }
 }
 
+let modrinthMenuSelection = []
 async function modrinthMenu (listId, page, query) {
-    let selections = []
-    
     const data = await getAllMods(page, query)
     const options = []
     if (data.hits.length == 0) {
@@ -326,7 +325,7 @@ async function modrinthMenu (listId, page, query) {
     for (let mod of data.hits) {
         options.push({
             name: mod.title,
-            value: mod['project_id'],
+            value: `mod-${mod['project_id']}`,
             description: `${chalk.yellow(mod.downloads+ " downloads") } | ${chalk.magenta(mod.versions[mod.versions.length - 1])} | ${chalk.green(mod.description)}`
         })
     }
@@ -362,6 +361,10 @@ async function modrinthMenu (listId, page, query) {
         pageSize: 12
     }, {clearPromptOnDone: true})
     
+    if (selection.includes('mod-')) {
+
+    }
+
     if (selection == "next") {
         page++
         return await modrinthMenu (listId, page, query)
@@ -373,6 +376,7 @@ async function modrinthMenu (listId, page, query) {
     }
 
     if (selection == "return") {
+        modrinthMenuSelection = []
         return await addModsMenu(listId)
     }
 
