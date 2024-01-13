@@ -258,7 +258,7 @@ async function viewList(list) {
                 value: 'edit'
             },
             {
-                name: chalk.red('Delete List'),
+                name: 'Delete List',
                 value: 'delete'
             },
             new Separator(),
