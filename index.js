@@ -326,7 +326,7 @@ async function modrinthMenu (listId, page, query, cursor) {
         options.push({
             name: modrinthMenuSelection.includes(mod.project_id) ? chalk.cyan(mod.title) : mod.title,
             value: `mod-${mod['project_id']}`,
-            description: `${chalk.yellow(mod.downloads+ " downloads") } | ${chalk.magenta(mod.versions[mod.versions.length - 1])} | ${chalk.green(mod.description)}`
+            description: `${chalk.yellowBright(mod.downloads+ " downloads") } | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`
         })
     }
 
