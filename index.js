@@ -79,7 +79,21 @@ async function getModrinth(page, query) {
         spinner.stop()
         return res.data
     } catch (e) {
+        spinner.fail('Something went wrong!')
+        return await listsMenu()
+    }
+}
+
+async function dataFromIds (ids) {
+    const spinner = ora('Loading...').start()
+
+    try {
+        const res = await axios.get(`https://api.modrinth.com/v2/projects`, {params: {ids: JSON.stringify(ids)}})
         spinner.stop()
+        return res.data
+    } catch (e) {
+        spinner.fail('Something went wrong!')
+        console.log(e)
         return await listsMenu()
     }
 }
@@ -300,7 +314,39 @@ async function viewList(list) {
         return await viewList(foundList.id)
     }
 
+    if (selection == "view") {
+        return await viewMods(list)
+    }
+
     return await listsMenu()
+}
+
+async function viewMods (listId) {
+    const foundList = getList(listId)
+
+    const data = await dataFromIds(foundList.mods)
+
+    for (let mod of data) {
+        console.log(mod.title)
+    } 
+    console.log('\n')
+
+    const selection = await select({
+        message: `${chalk.italic(foundList.name)} | ${foundList.modCount} mods`,
+        choices: [
+            new Separator(),
+            {
+                name: 'Return',
+                value: 'return'
+            },
+        ],
+        pageSize: 13
+    }, { clearPromptOnDone: true })
+
+    if (selection) {
+        console.clear()
+        return await viewList(listId)
+    }
 }
 
 //                      _     
@@ -446,6 +492,8 @@ async function modrinthMenu(listId, page, query, cursor) {
     }
 
 }
+
+
 
 
 async function main() {
