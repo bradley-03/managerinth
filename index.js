@@ -395,7 +395,7 @@ async function modrinthMenu(listId, page, query, cursor) {
                 value: 'return'
             }
         ],
-        pageSize: 12,
+        pageSize: 16,
         default: cursor
     }, { clearPromptOnDone: true })
 
