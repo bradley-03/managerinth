@@ -1,11 +1,8 @@
 import { input, select, Separator, confirm } from "@inquirer/prompts"
 import inquirer from 'inquirer'
-import chalk, { modifierNames } from 'chalk';
+import chalk from 'chalk';
 import Conf from 'conf'
-import fs from "fs/promises"
-import os from "os"
 import { nanoid } from "nanoid"
-import chalkAnimation from 'chalk-animation'
 import ora from "ora"
 import axios from "axios"
 
