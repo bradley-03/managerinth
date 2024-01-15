@@ -84,11 +84,11 @@ async function getModrinth(page, query) {
     }
 }
 
-async function dataFromIds (ids) {
+async function dataFromIds(ids) {
     const spinner = ora('Loading...').start()
 
     try {
-        const res = await axios.get(`https://api.modrinth.com/v2/projects`, {params: {ids: JSON.stringify(ids)}})
+        const res = await axios.get(`https://api.modrinth.com/v2/projects`, { params: { ids: JSON.stringify(ids) } })
         spinner.stop()
         return res.data
     } catch (e) {
@@ -96,6 +96,10 @@ async function dataFromIds (ids) {
         console.log(e)
         return await listsMenu()
     }
+}
+
+function removeModsFromList (listId, mods) {
+    
 }
 
 
@@ -317,10 +321,14 @@ async function viewList(list) {
         return await viewMods(list)
     }
 
+    if (selection == "remove") {
+        return await removeModsMenu(list)
+    }
+
     return await listsMenu()
 }
 
-async function viewMods (listId) {
+async function viewMods(listId) {
     const foundList = getList(listId)
 
     const data = await dataFromIds(foundList.mods)
@@ -329,7 +337,6 @@ async function viewMods (listId) {
     if (data.length == 0) {
         options.push({
             name: " ",
-            value: ``,
             disabled: "No mods have been added to this list yet!"
         })
     }
@@ -339,7 +346,7 @@ async function viewMods (listId) {
             value: `mod-${mod['project_id']}`,
             description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`,
         })
-    } 
+    }
     console.log('\n')
 
     const selection = await select({
@@ -494,7 +501,7 @@ async function modrinthMenu(listId, page, query, cursor) {
         if (confirmation == true) {
             updateList(listId, {
                 ...foundList,
-                mods: modrinthMenuSelection,
+                mods: [...foundList.mods, ...modrinthMenuSelection],
                 modCount: foundList.modCount += modrinthMenuSelection.length
             })
             modrinthMenuSelection = []
@@ -506,6 +513,85 @@ async function modrinthMenu(listId, page, query, cursor) {
 
 }
 
+let modsForRemoval = []
+async function removeModsMenu(listId, cursor) {
+    const foundList = getList(listId)
+    const data = await dataFromIds(foundList.mods)
+
+    const options = []
+    if (data.length == 0) {
+        options.push({
+            name: " ",
+            disabled: "No mods have been added to this list yet!"
+        })
+    }
+    for (let mod of data) {
+        options.push({
+            name: modsForRemoval.includes(mod.id) ? chalk.cyan(mod.title) : mod.title,
+            value: `mod-${mod['id']}`,
+            description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`,
+        })
+    }
+
+    const selection = await select({
+        message: `${chalk.italic(foundList.name)} | ${foundList.modCount} mods`,
+        choices: [
+            ...options,
+            new Separator(),
+            {
+                name: chalk.bold.italic('Confirm'),
+                value: 'confirm',
+                disabled: !modsForRemoval.length > 0
+            },
+            {
+                name: chalk.bold.italic('Return'),
+                value: 'return'
+            },
+            new Separator()
+        ],
+        pageSize: 17,
+        default: cursor
+    }, { clearPromptOnDone: true })
+
+    if (selection.includes("mod-")) {
+        const modId = selection.substring(4, selection.length)
+        if (modsForRemoval.includes(modId)) {
+            const updatedArr = modsForRemoval.filter((mod) => mod !== modId)
+            modsForRemoval = updatedArr
+
+            return await removeModsMenu(listId, selection)
+        }
+
+        modsForRemoval.push(modId)
+        return await removeModsMenu(listId, selection)
+    }
+
+    if (selection == "confirm") {
+        const confirmation = await confirm({
+            message: `Are you sure you want to remove ${modsForRemoval.length} mods from ${foundList.name}?`
+        }, { clearPromptOnDone: true })
+
+        if (confirmation == true) {
+
+            const updatedList = foundList.mods.filter((mod) => !modsForRemoval.includes(mod))
+
+            updateList(listId, {
+                ...foundList,
+                mods: updatedList,
+                modCount: foundList.modCount - modsForRemoval.length
+            })
+            modsForRemoval = []
+            return await removeModsMenu(listId)
+        } else {
+            return await removeModsMenu(listId)
+        }
+    }
+
+    if (selection == "return") {
+        modsForRemoval = []
+        return await viewList(listId)
+    }
+}
 
 
 
