@@ -1,18 +1,14 @@
 import { input, select, Separator, confirm } from "@inquirer/prompts"
-import inquirer from 'inquirer'
-import chalk from 'chalk';
 import Conf from 'conf'
-import { nanoid } from "nanoid"
-import ora from "ora"
 import axios from "axios"
+import { nanoid } from "nanoid"
+import chalk from 'chalk';
+import ora from "ora"
 
 import path from 'path'
 import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-
-import Directory from "inquirer-directory"
-inquirer.registerPrompt('directory', Directory)
 
 const config = new Conf({
     projectName: "modrinth-manage",
@@ -30,7 +26,7 @@ const config = new Conf({
 //  \__,_|\__|_|_|          
 // Util
 
-async function validateListName (name) {
+async function validateListName(name) {
     // initial validation
     if (name.trim() === "") {
         return 'List name cannot be empty.'
@@ -48,14 +44,16 @@ async function validateListName (name) {
     return true
 }
 
-function deleteList (id) {
+// delete list from config
+function deleteList(listId) {
     const currentLists = config.get('modLists')
-    const updatedList = currentLists.filter((list) => list.id !== id)
+    const updatedList = currentLists.filter((list) => list.id !== listId)
 
     config.set('modLists', updatedList)
 }
 
-function updateList (listId, data) {
+// update list in config
+function updateList(listId, data) {
     const allLists = config.get('modLists')
     // get and set required list
     const reqListIndex = allLists.findIndex((list) => list.id == listId)
@@ -64,13 +62,15 @@ function updateList (listId, data) {
     config.set('modLists', allLists)
 }
 
-function getList (listId) {
+// get a list from id
+function getList(listId) {
     const allLists = config.get('modLists')
     const foundList = allLists.filter((list) => list.id == listId)[0]
     return foundList
 }
 
-async function getModrinth (page, query) {
+// query modrinth for mods
+async function getModrinth(page, query) {
     const spinner = ora('Loading...').start()
     try {
         const res = await axios.get(
@@ -85,7 +85,8 @@ async function getModrinth (page, query) {
     }
 }
 
-async function dataFromIds (ids) {
+// returns modrinth data from a set of ids
+async function dataFromIds(ids) {
     const spinner = ora('Loading...').start()
     try {
         const res = await axios.get(
@@ -100,6 +101,17 @@ async function dataFromIds (ids) {
     }
 }
 
+// set download path
+async function setDownloadPath() {
+    const newPath = await input({message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:'}, { clearPromptOnDone: true })
+    if (newPath == "c") {
+        return await optionsMenu()
+    } else {
+        config.set('downloadPath', newPath.trim())
+        return await optionsMenu()
+    }
+}
+
 //  _ __ ___   ___ _  __ _   _ ___ 
 // | '_ ` _ \ / _ \ '_ \| | | / __|
 // | | | | | |  __/ | | | |_| \__ \
@@ -110,29 +122,18 @@ async function mainMenu() {
     const selection = await select({
         message: chalk.italic("What would you like to do?"),
         choices: [
-            {
-                name: 'Mod Lists',
-                value: 'lists',
-            },
-            {
-                name: 'Download Mods',
-                value: 'download',
-            },
-            {
-                name: 'Options',
-                value: 'options'
-            }
+            { name: 'Mod Lists', value: 'lists' },
+            { name: 'Download Mods', value: 'download' },
+            { name: 'Options', value: 'options' }
         ],
     }, { clearPromptOnDone: true })
 
-    if (selection == "lists") {
-        return await listsMenu()
+    switch (selection) {
+        case "lists":
+            return await listsMenu()
+        case "options":
+            return await optionsMenu()
     }
-
-    if (selection == "options") {
-        return await optionsMenu()
-    }
-
 }
 
 async function optionsMenu() {
@@ -151,20 +152,11 @@ async function optionsMenu() {
         ]
     }, { clearPromptOnDone: true })
 
-    if (selection == "downloadPath") {
-        const newPath = await input({
-            message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:'
-        }, { clearPromptOnDone: true })
-        if (newPath == "c") {
-            return await optionsMenu()
-        } else {
-            config.set('downloadPath', newPath)
-            return await optionsMenu()
-        }
-    }
-
-    if (selection == 'return') {
-        return await mainMenu()
+    switch (selection) {
+        case "downloadPath":
+            return await setDownloadPath()
+        case "return":
+            return await mainMenu()
     }
 }
 
@@ -181,32 +173,23 @@ async function listsMenu() {
 
     const modListsOptions = []
     if (modLists.length == 0) {
-        modListsOptions.push({
-            name: ' ',
-            disabled: 'No lists found!'
-        })
-    }
+        modListsOptions.push({name: ' ', disabled: 'No lists found!'})
+    } // provide message for empty list
     for (let modList of modLists) {
         modListsOptions.push({
             name: modList.name,
             value: `list-${modList.id}`,
             description: chalk.dim(`| ${modList.name} | ${modList.modCount} mods |`)
         })
-    } // make them look nice for selection
+    } // parse for choices
 
     const choices = [
         new Separator(),
         ...modListsOptions,
         new Separator(),
-        {
-            name: chalk.italic('Create List'),
-            value: 'create'
-        },
+        {name: chalk.italic('Create List'), value: 'create'},
         new Separator(),
-        {
-            name: chalk.italic('Return'),
-            value: 'return'
-        },
+        {name: chalk.italic('Return'), value: 'return'},
     ] // merge list options with static options
 
     const selection = await select({
@@ -215,17 +198,15 @@ async function listsMenu() {
         pageSize: 11,
     }, { clearPromptOnDone: true })
 
-    if (selection.includes('list-')) { // check if selected a list
+    if (selection.includes('list-')) { // check if list was selected
         const listId = selection.substring(5, selection.length) // parse list id
         return await viewList(listId)
     }
-
-    if (selection == "create") {
-        return await createList()
-    }
-
-    if (selection == 'return') {
-        return await mainMenu()
+    switch (selection) {
+        case "create":
+            return await createList()
+        case "return":
+            return await mainMenu()
     }
 }
 
