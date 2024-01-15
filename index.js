@@ -206,7 +206,6 @@ async function listsMenu() {
             name: chalk.italic('Return'),
             value: 'return'
         },
-        new Separator()
     ] // merge list options with static options
 
     const selection = await select({
@@ -346,7 +345,6 @@ async function viewMods (listId) {
     const selection = await select({
         message: `${chalk.italic(foundList.name)} | ${foundList.modCount} mods`,
         choices: [
-            new Separator(),
             ...options,
             new Separator(),
             {
