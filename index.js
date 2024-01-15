@@ -30,16 +30,16 @@ const config = new Conf({
 //  \__,_|\__|_|_|          
 // Util
 
-async function validateListName(name) {
+async function validateListName (name) {
+    // initial validation
     if (name.trim() === "") {
         return 'List name cannot be empty.'
-    }
-    if (name.length > 24) {
+    } else if (name.length > 24) {
         return 'List name cannot exceed 24 characters.'
     }
 
+    // check if unique
     const lists = config.get('modLists')
-
     for (let list of lists) {
         if (list.name == name) {
             return `A list with the name '${name}' already exists.`
@@ -48,31 +48,35 @@ async function validateListName(name) {
     return true
 }
 
-function deleteList(id) {
+function deleteList (id) {
     const currentLists = config.get('modLists')
     const updatedList = currentLists.filter((list) => list.id !== id)
 
     config.set('modLists', updatedList)
 }
 
-function updateList(listId, data) {
+function updateList (listId, data) {
     const allLists = config.get('modLists')
+    // get and set required list
     const reqListIndex = allLists.findIndex((list) => list.id == listId)
     allLists[reqListIndex] = data
 
     config.set('modLists', allLists)
 }
 
-function getList(listId) {
+function getList (listId) {
     const allLists = config.get('modLists')
     const foundList = allLists.filter((list) => list.id == listId)[0]
     return foundList
 }
 
-async function getModrinth(page, query) {
+async function getModrinth (page, query) {
     const spinner = ora('Loading...').start()
     try {
-        const res = await axios.get(`https://api.modrinth.com/v2/search?query="${query == null ? "" : query}"&limit=20&offset=${page * 20}`)
+        const res = await axios.get(
+            `https://api.modrinth.com/v2/search`,
+            { params: { query: query, limit: 20, offset: page * 20 } }
+        )
         spinner.stop()
         return res.data
     } catch (e) {
@@ -81,24 +85,20 @@ async function getModrinth(page, query) {
     }
 }
 
-async function dataFromIds(ids) {
+async function dataFromIds (ids) {
     const spinner = ora('Loading...').start()
-
     try {
-        const res = await axios.get(`https://api.modrinth.com/v2/projects`, { params: { ids: JSON.stringify(ids) } })
+        const res = await axios.get(
+            `https://api.modrinth.com/v2/projects`,
+            { params: { ids: JSON.stringify(ids) } }
+        )
         spinner.stop()
         return res.data
     } catch (e) {
         spinner.fail('Something went wrong!')
-        console.log(e)
         return await listsMenu()
     }
 }
-
-function removeModsFromList (listId, mods) {
-    
-}
-
 
 //  _ __ ___   ___ _  __ _   _ ___ 
 // | '_ ` _ \ / _ \ '_ \| | | / __|
