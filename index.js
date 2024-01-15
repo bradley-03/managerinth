@@ -326,8 +326,20 @@ async function viewMods (listId) {
 
     const data = await dataFromIds(foundList.mods)
 
+    const options = []
+    if (data.length == 0) {
+        options.push({
+            name: " ",
+            value: ``,
+            disabled: "No mods have been added to this list yet!"
+        })
+    }
     for (let mod of data) {
-        console.log(mod.title)
+        options.push({
+            name: mod.title,
+            value: `mod-${mod['project_id']}`,
+            description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`,
+        })
     } 
     console.log('\n')
 
@@ -335,10 +347,13 @@ async function viewMods (listId) {
         message: `${chalk.italic(foundList.name)} | ${foundList.modCount} mods`,
         choices: [
             new Separator(),
+            ...options,
+            new Separator(),
             {
-                name: 'Return',
+                name: chalk.bold.italic('Return'),
                 value: 'return'
             },
+            new Separator()
         ],
         pageSize: 13
     }, { clearPromptOnDone: true })
