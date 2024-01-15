@@ -425,7 +425,7 @@ async function modrinthMenu(listId, page, query, cursor) {
     }
     for (let mod of data.hits) {
         options.push({
-            name: modrinthMenuSelection.includes(mod.project_id) ? chalk.cyan(mod.title) : mod.title,
+            name: modrinthMenuSelection.includes(mod.project_id) ? chalk.greenBright.bold.italic(mod.title) : mod.title,
             value: `mod-${mod['project_id']}`,
             description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`,
             disabled: foundList.mods.includes(mod.project_id) ? "(Already Added)" : false
@@ -527,7 +527,7 @@ async function removeModsMenu(listId, cursor) {
     }
     for (let mod of data) {
         options.push({
-            name: modsForRemoval.includes(mod.id) ? chalk.cyan(mod.title) : mod.title,
+            name: modsForRemoval.includes(mod.id) ? chalk.redBright.bold.italic(mod.title) : mod.title,
             value: `mod-${mod['id']}`,
             description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`,
         })
