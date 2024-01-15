@@ -101,15 +101,26 @@ async function dataFromIds(ids) {
     }
 }
 
-// set download path
 async function setDownloadPath() {
-    const newPath = await input({message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:'}, { clearPromptOnDone: true })
+    const newPath = await input({ message: 'Enter a new path where you want mods to be downloaded or type "c" to cancel:' }, { clearPromptOnDone: true })
     if (newPath == "c") {
         return await optionsMenu()
     } else {
         config.set('downloadPath', newPath.trim())
         return await optionsMenu()
     }
+}
+
+function createList(name) {
+    const currentLists = config.get('modLists')
+    const newList = {
+        id: nanoid(),
+        name: name.trim(),
+        modCount: 0,
+        mods: []
+    }
+    config.set('modLists', [...currentLists, newList])
+    return newList
 }
 
 //  _ __ ___   ___ _  __ _   _ ___ 
@@ -173,7 +184,7 @@ async function listsMenu() {
 
     const modListsOptions = []
     if (modLists.length == 0) {
-        modListsOptions.push({name: ' ', disabled: 'No lists found!'})
+        modListsOptions.push({ name: ' ', disabled: 'No lists found!' })
     } // provide message for empty list
     for (let modList of modLists) {
         modListsOptions.push({
@@ -187,9 +198,9 @@ async function listsMenu() {
         new Separator(),
         ...modListsOptions,
         new Separator(),
-        {name: chalk.italic('Create List'), value: 'create'},
+        { name: chalk.italic('Create List'), value: 'create' },
         new Separator(),
-        {name: chalk.italic('Return'), value: 'return'},
+        { name: chalk.italic('Return'), value: 'return' },
     ] // merge list options with static options
 
     const selection = await select({
@@ -204,63 +215,37 @@ async function listsMenu() {
     }
     switch (selection) {
         case "create":
-            return await createList()
+            return await createListMenu()
         case "return":
             return await mainMenu()
     }
 }
 
-async function createList() {
+async function createListMenu() {
     const name = await input({
         message: "Enter a name for your new mod list:",
         validate: validateListName,
     }, { clearPromptOnDone: true })
 
-    const currentLists = config.get('modLists')
-    const newList = {
-        id: nanoid(),
-        name: name.trim(),
-        modCount: 0,
-        mods: []
-    }
-    config.set('modLists', [...currentLists, newList])
-
-    return await listsMenu()
+    const newList = createList(name)
+    return await viewList(newList.id)
 }
 
-async function viewList(list) {
-    const foundList = getList(list)
+async function viewList(listId) {
+    const foundList = getList(listId)
 
     const selection = await select({
         message: `${chalk.italic(foundList.name)} | ${foundList.modCount} mods`,
         choices: [
             new Separator(),
-            {
-                name: 'View Mods',
-                value: 'view'
-            },
-            {
-                name: 'Add Mods',
-                value: 'add'
-            },
-            {
-                name: 'Remove Mods',
-                value: 'remove'
-            },
+            {name: 'View Mods', value: 'view'},
+            {name: 'Add Mods', value: 'add'},
+            {name: 'Remove Mods', value: 'remove'},
             new Separator(),
-            {
-                name: 'Change Name',
-                value: 'edit'
-            },
-            {
-                name: 'Delete List',
-                value: 'delete'
-            },
+            {name: 'Change Name', value: 'edit'},
+            {name: 'Delete List', value: 'delete'},
             new Separator(),
-            {
-                name: 'Return',
-                value: 'return'
-            },
+            {name: 'Return', value: 'return'},
         ],
         pageSize: 13
     }, { clearPromptOnDone: true })
