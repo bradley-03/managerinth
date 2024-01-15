@@ -45,11 +45,19 @@ async function validateListName(name) {
 }
 
 // delete list from config
-function deleteList(listId) {
-    const currentLists = config.get('modLists')
-    const updatedList = currentLists.filter((list) => list.id !== listId)
-
-    config.set('modLists', updatedList)
+async function deleteList(listId) {
+    const foundList = getList(listId)
+    const confirmation = await confirm({message: `Are you sure you want to delete ${chalk.green.bold(foundList.name)}?`}, { clearPromptOnDone: true })
+    
+    if (confirmation == true) {
+        const currentLists = config.get('modLists')
+        const updatedList = currentLists.filter((list) => list.id !== listId)
+    
+        config.set('modLists', updatedList)
+        return await listsMenu()
+    } else {
+        return await viewList(foundList.id)
+    }
 }
 
 // update list in config
@@ -251,22 +259,8 @@ async function viewList(listId) {
     }, { clearPromptOnDone: true })
 
     if (selection == "delete") {
-        const confirmation = await confirm({
-            message: `Are you sure you want to delete ${chalk.green.bold(foundList.name)}?`
-        }, { clearPromptOnDone: true })
-
-        if (confirmation == true) {
-            deleteList(foundList.id)
-            return await listsMenu()
-        } else {
-            return await (viewList(foundList.id))
-        }
+        await deleteList(listId)
     }
-
-    if (selection == "add") {
-        return await addModsMenu(foundList.id)
-    }
-
     if (selection == "edit") {
         const name = await input({
             message: `Enter a new name for ${chalk.green.bold(foundList.name)}:`,
@@ -276,32 +270,25 @@ async function viewList(listId) {
             ...foundList,
             name
         })
-
         return await viewList(foundList.id)
     }
-
-    if (selection == "view") {
-        return await viewMods(list)
+    switch (selection) {
+        case "add":
+            return await addModsMenu(foundList.id)
+        case "view":
+            return await viewMods(list)
+        case "remove":
+            return await removeModsMenu(list)
     }
-
-    if (selection == "remove") {
-        return await removeModsMenu(list)
-    }
-
-    return await listsMenu()
 }
 
 async function viewMods(listId) {
     const foundList = getList(listId)
-
     const data = await dataFromIds(foundList.mods)
 
     const options = []
     if (data.length == 0) {
-        options.push({
-            name: " ",
-            disabled: "No mods have been added to this list yet!"
-        })
+        options.push({name: " ", disabled: "No mods have been added to this list yet!"})
     }
     for (let mod of data) {
         options.push({
