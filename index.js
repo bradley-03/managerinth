@@ -145,6 +145,8 @@ function createList(name) {
     return newList
 }
 
+
+
 //  _ __ ___   ___ _  __ _   _ ___ 
 // | '_ ` _ \ / _ \ '_ \| | | / __|
 // | | | | | |  __/ | | | |_| \__ \
@@ -166,6 +168,8 @@ async function mainMenu() {
             return await listsMenu()
         case "options":
             return await optionsMenu()
+        case "download":
+            return await downloadMenu()
     }
 }
 
@@ -192,6 +196,8 @@ async function optionsMenu() {
             return await mainMenu()
     }
 }
+
+
 
 //  _ _     _       
 // | (_)   | |      
@@ -321,6 +327,8 @@ async function viewMods(listId) {
         return await viewList(listId)
     }
 }
+
+
 
 //                      _     
 //                     | |    
@@ -471,7 +479,7 @@ async function removeModsMenu(listId, cursor) {
                 value: 'confirm',
                 disabled: !modsForRemoval.length > 0
             },
-            {name: chalk.bold.italic('Return'), value: 'return'},
+            { name: chalk.bold.italic('Return'), value: 'return' },
             new Separator()
         ],
         pageSize: 17,
@@ -516,6 +524,88 @@ async function removeModsMenu(listId, cursor) {
         return await viewList(listId)
     }
 }
+
+// Downloads
+
+async function downloadMenu() {
+    const lists = config.get('modLists')
+
+    const listChoices = []
+    if (lists.length == 0) {
+        listChoices.push({ name: ' ', disabled: 'No lists found!' })
+    } // provide message for empty list
+    for (let list of lists) {
+        listChoices.push({
+            name: list.name,
+            value: `list-${list.id}`,
+            description: chalk.dim(`| ${list.name} | ${list.modCount} mods |`)
+        })
+    } // parse for choices
+
+    const listSelection = await select({
+        message: `Choose a list to download:`,
+        choices: [
+            new Separator(),
+            ...listChoices,
+            new Separator(),
+            { name: 'Return', value: 'return' },
+        ],
+        pageSize: 13
+    }, { clearPromptOnDone: true })
+
+    if (listSelection.includes('list-')) {
+        const listId = listSelection.substring(5, listSelection.length)
+        return await downloadSelectionMenu(listId)
+    }
+
+    return await mainMenu()
+}
+
+let availableVersions = {
+    snapshots: [],
+    prerelease: [],
+    full: [],
+}
+async function downloadSelectionMenu (listId) {
+    const foundList = getList(listId)
+    const modsInfo = await dataFromIds(foundList.mods)
+
+    // push all supported versions
+    for (let mod of modsInfo) {
+        for (let ver of mod["game_versions"]) {
+            if (ver.includes("w") && !availableVersions.snapshots.includes(ver)) {
+                availableVersions.snapshots.push(ver)
+            } else if (ver.includes("pre") || ver.includes("rc") && !availableVersions.prerelease.includes(ver)) {
+                availableVersions.prerelease.push(ver)
+            } else if (!availableVersions.full.includes(ver)) {
+                availableVersions.full.push(ver)
+            }
+        }
+    }
+    // parse those versions
+    // let parsedVers = []
+    // for (let ver of availableVersions) {
+    //     parsedVers.push({
+    //         name: ver
+    //     })
+    // }
+    console.log(availableVersions)
+
+    const verSelection = await select ({
+        message: 'Choose a version to download mods for:',
+        choices: [
+            new Separator(),
+            ...parsedVers,
+            new Separator(),
+            {name: chalk.bold.italic('Return'), value: 'return'}
+        ],
+        pageSize: 15
+    }, {clearPromptOnDone: true})
+    
+    return await downloadMenu()
+}
+
+
 
 // Initialize
 async function main() {
