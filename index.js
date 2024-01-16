@@ -44,20 +44,34 @@ async function validateListName(name) {
     return true
 }
 
-// delete list from config
+// delete list prompt
 async function deleteList(listId) {
     const foundList = getList(listId)
-    const confirmation = await confirm({message: `Are you sure you want to delete ${chalk.green.bold(foundList.name)}?`}, { clearPromptOnDone: true })
-    
+    const confirmation = await confirm({ message: `Are you sure you want to delete ${chalk.green.bold(foundList.name)}?` }, { clearPromptOnDone: true })
+
     if (confirmation == true) {
         const currentLists = config.get('modLists')
         const updatedList = currentLists.filter((list) => list.id !== listId)
-    
+
         config.set('modLists', updatedList)
         return await listsMenu()
     } else {
         return await viewList(foundList.id)
     }
+}
+
+// edit list name prompt
+async function editListName(listId) {
+    const foundList = getList(listId)
+    const name = await input({
+        message: `Enter a new name for ${chalk.green.bold(foundList.name)}:`,
+        validate: validateListName,
+    }, { clearPromptOnDone: true })
+    updateList(foundList.id, {
+        ...foundList,
+        name
+    })
+    return await viewList(foundList.id)
 }
 
 // update list in config
@@ -246,39 +260,31 @@ async function viewList(listId) {
         message: `${chalk.italic(foundList.name)} | ${foundList.modCount} mods`,
         choices: [
             new Separator(),
-            {name: 'View Mods', value: 'view'},
-            {name: 'Add Mods', value: 'add'},
-            {name: 'Remove Mods', value: 'remove'},
+            { name: 'View Mods', value: 'view' },
+            { name: 'Add Mods', value: 'add' },
+            { name: 'Remove Mods', value: 'remove' },
             new Separator(),
-            {name: 'Change Name', value: 'edit'},
-            {name: 'Delete List', value: 'delete'},
+            { name: 'Change Name', value: 'edit' },
+            { name: 'Delete List', value: 'delete' },
             new Separator(),
-            {name: 'Return', value: 'return'},
+            { name: 'Return', value: 'return' },
         ],
         pageSize: 13
     }, { clearPromptOnDone: true })
 
-    if (selection == "delete") {
-        await deleteList(listId)
-    }
-    if (selection == "edit") {
-        const name = await input({
-            message: `Enter a new name for ${chalk.green.bold(foundList.name)}:`,
-            validate: validateListName,
-        }, { clearPromptOnDone: true })
-        updateList(foundList.id, {
-            ...foundList,
-            name
-        })
-        return await viewList(foundList.id)
-    }
     switch (selection) {
         case "add":
-            return await addModsMenu(foundList.id)
+            return await addModsMenu(listId)
         case "view":
-            return await viewMods(list)
+            return await viewMods(listId)
         case "remove":
-            return await removeModsMenu(list)
+            return await removeModsMenu(listId)
+        case "delete":
+            return await deleteList(listId)
+        case "edit":
+            return await editListName(listId)
+        case "return":
+            return await listsMenu()
     }
 }
 
@@ -288,13 +294,13 @@ async function viewMods(listId) {
 
     const options = []
     if (data.length == 0) {
-        options.push({name: " ", disabled: "No mods have been added to this list yet!"})
+        options.push({ name: " ", disabled: "No mods have been added to this list yet!" }) // provide message for empty list
     }
     for (let mod of data) {
         options.push({
             name: mod.title,
             value: `mod-${mod['project_id']}`,
-            description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod.versions[mod.versions.length - 1])} | ${chalk.greenBright(mod.description)}`,
+            description: `${chalk.yellowBright(mod.downloads + " downloads")} | ${chalk.magentaBright(mod["game_versions"][mod["game_versions"].length - 1])} | ${chalk.greenBright(mod.description)}`,
         })
     }
     console.log('\n')
@@ -304,10 +310,7 @@ async function viewMods(listId) {
         choices: [
             ...options,
             new Separator(),
-            {
-                name: chalk.bold.italic('Return'),
-                value: 'return'
-            },
+            { name: chalk.bold.italic('Return'), value: 'return' },
             new Separator()
         ],
         pageSize: 13
@@ -332,46 +335,33 @@ async function addModsMenu(listId) {
         message: chalk.italic('What would you like to do?'),
         choices: [
             new Separator(),
-            {
-                name: 'All Modrinth Mods',
-                value: 'all'
-            },
-            {
-                name: 'Search Modrinth',
-                value: 'search'
-            },
+            { name: 'All Modrinth Mods', value: 'all' },
+            { name: 'Search Modrinth', value: 'search' },
             new Separator(),
-            {
-                name: 'Return',
-                value: 'return'
-            }
+            { name: 'Return', value: 'return' }
         ],
     }, { clearPromptOnDone: true })
 
-    if (selection == "return") {
-        return await viewList(listId)
-    }
-    if (selection == "search") {
-        const query = await input({ message: "Enter search query:" }, { clearPromptOnDone: true })
-        return await modrinthMenu(listId, 0, query)
-    }
-
-    if (selection == "all") {
-        return await modrinthMenu(listId, 0, null)
+    switch (selection) {
+        case "all":
+            return await modrinthMenu(listId, 0, null)
+        case "search":
+            const query = await input({ message: "Enter search query:" }, { clearPromptOnDone: true })
+            return await modrinthMenu(listId, 0, query)
+        case "return":
+            return await viewList(listId)
     }
 }
 
 let modrinthMenuSelection = []
 async function modrinthMenu(listId, page, query, cursor) {
     const data = await getModrinth(page, query)
+    const maxPage = Math.ceil(data.total_hits / 20)
     const foundList = getList(listId)
 
     const options = []
     if (data.hits.length == 0) {
-        options.push({
-            name: ' ',
-            disabled: `No mods matching "${query}" found!`
-        })
+        options.push({ name: ' ', disabled: `No mods matching "${query}" found!` })
     }
     for (let mod of data.hits) {
         options.push({
@@ -381,8 +371,6 @@ async function modrinthMenu(listId, page, query, cursor) {
             disabled: foundList.mods.includes(mod.project_id) ? "(Already Added)" : false
         })
     }
-
-    const maxPage = Math.ceil(data.total_hits / 20)
 
     const selection = await select({
         message: `Page ${page + 1} of ${maxPage} | Select mods from the list to add:`,
@@ -406,41 +394,23 @@ async function modrinthMenu(listId, page, query, cursor) {
                 value: 'confirm',
                 disabled: !modrinthMenuSelection.length > 0
             },
-            {
-                name: chalk.italic.bold('Return'),
-                value: 'return'
-            }
+            { name: chalk.italic.bold('Return'), value: 'return' }
         ],
         pageSize: 16,
         default: cursor
     }, { clearPromptOnDone: true })
 
-    if (selection.includes('mod-')) {
-        const modId = selection.substring(4, selection.length)
+    if (selection.includes('mod-')) { // handle selection
+        const modId = selection.substring(4, selection.length) // parse mod id
+
         if (modrinthMenuSelection.includes(modId)) {
             const updatedArr = modrinthMenuSelection.filter((mod) => mod !== modId)
             modrinthMenuSelection = updatedArr
 
             return await modrinthMenu(listId, page, query, selection)
         }
-
         modrinthMenuSelection.push(modId)
         return await modrinthMenu(listId, page, query, selection)
-    }
-
-    if (selection == "next") {
-        page++
-        return await modrinthMenu(listId, page, query, selection)
-    }
-
-    if (selection == "previous") {
-        page--
-        return await modrinthMenu(listId, page, query, selection)
-    }
-
-    if (selection == "return") {
-        modrinthMenuSelection = []
-        return await addModsMenu(listId)
     }
 
     if (selection == "confirm") {
@@ -461,6 +431,17 @@ async function modrinthMenu(listId, page, query, cursor) {
         }
     }
 
+    switch (selection) {
+        case "next":
+            page++
+            return await modrinthMenu(listId, page, query, selection)
+        case "previous":
+            page--
+            return await modrinthMenu(listId, page, query, selection)
+        case "return":
+            modrinthMenuSelection = []
+            return await addModsMenu(listId)
+    }
 }
 
 let modsForRemoval = []
@@ -470,10 +451,7 @@ async function removeModsMenu(listId, cursor) {
 
     const options = []
     if (data.length == 0) {
-        options.push({
-            name: " ",
-            disabled: "No mods have been added to this list yet!"
-        })
+        options.push({ name: " ", disabled: "No mods have been added to this list yet!" })
     }
     for (let mod of data) {
         options.push({
@@ -493,25 +471,22 @@ async function removeModsMenu(listId, cursor) {
                 value: 'confirm',
                 disabled: !modsForRemoval.length > 0
             },
-            {
-                name: chalk.bold.italic('Return'),
-                value: 'return'
-            },
+            {name: chalk.bold.italic('Return'), value: 'return'},
             new Separator()
         ],
         pageSize: 17,
         default: cursor
     }, { clearPromptOnDone: true })
 
-    if (selection.includes("mod-")) {
+    if (selection.includes("mod-")) { // handle selection
         const modId = selection.substring(4, selection.length)
+
         if (modsForRemoval.includes(modId)) {
             const updatedArr = modsForRemoval.filter((mod) => mod !== modId)
             modsForRemoval = updatedArr
 
             return await removeModsMenu(listId, selection)
         }
-
         modsForRemoval.push(modId)
         return await removeModsMenu(listId, selection)
     }
@@ -522,7 +497,6 @@ async function removeModsMenu(listId, cursor) {
         }, { clearPromptOnDone: true })
 
         if (confirmation == true) {
-
             const updatedList = foundList.mods.filter((mod) => !modsForRemoval.includes(mod))
 
             updateList(listId, {
@@ -543,12 +517,9 @@ async function removeModsMenu(listId, cursor) {
     }
 }
 
-
-
+// Initialize
 async function main() {
     console.clear()
-    // Main Menu
-    await mainMenu()
+    return await mainMenu()
 }
-
 main()
