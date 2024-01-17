@@ -27,6 +27,7 @@ const config = new Conf({
 // Util
 
 const RETURN_BTN = {name: chalk.bold.italic('Return'), value: 'return'}
+const CANCEL_BTN = {name: chalk.bold.italic('Cancel'), value: 'cancel'}
 
 async function validateListName(name) {
     // initial validation
@@ -48,7 +49,7 @@ async function validateListName(name) {
 
 // delete list prompt
 async function deleteList(listId) {
-    const foundList = getList(listId)
+    const foundList = getListFromId(listId)
     const confirmation = await confirm({ message: `Are you sure you want to delete ${chalk.green.bold(foundList.name)}?` }, { clearPromptOnDone: true })
 
     if (confirmation == true) {
@@ -64,7 +65,7 @@ async function deleteList(listId) {
 
 // edit list name prompt
 async function editListName(listId) {
-    const foundList = getList(listId)
+    const foundList = getListFromId(listId)
     const name = await input({
         message: `Enter a new name for ${chalk.green.bold(foundList.name)}:`,
         validate: validateListName,
@@ -87,7 +88,7 @@ function updateList(listId, data) {
 }
 
 // get a list from id
-function getList(listId) {
+function getListFromId(listId) {
     const allLists = config.get('modLists')
     const foundList = allLists.filter((list) => list.id == listId)[0]
     return foundList
@@ -168,6 +169,29 @@ async function getGameVersions () {
         return await mainMenu()
     }
 }
+
+async function getLoaders () {
+    const spinner = ora('Loading...').start()
+    try {
+        const res = await axios.get(`https://api.modrinth.com/v2/tag/loader`)
+
+        const output = []
+        for (let loader of res.data) {
+            if (loader["supported_project_types"][0] == "mod") {
+                output.push(loader.name)
+            }
+        }
+        spinner.stop()
+        return output
+    } catch (e) {
+        spinner.fail("Couldn't get loaders!")
+        return await mainMenu()
+    }
+}
+
+// get available mods for download
+
+
 
 
 //  _ __ ___   ___ _  __ _   _ ___ 
@@ -280,7 +304,7 @@ async function createListMenu() {
 }
 
 async function viewList(listId) {
-    const foundList = getList(listId)
+    const foundList = getListFromId(listId)
 
     const selection = await select({
         message: `${chalk.italic(foundList.name)} | ${foundList.modCount} mods`,
@@ -315,7 +339,7 @@ async function viewList(listId) {
 }
 
 async function viewMods(listId) {
-    const foundList = getList(listId)
+    const foundList = getListFromId(listId)
     const data = await dataFromIds(foundList.mods)
 
     const options = []
@@ -385,7 +409,7 @@ let modrinthMenuSelection = []
 async function modrinthMenu(listId, page, query, cursor) {
     const data = await getModrinth(page, query)
     const maxPage = Math.ceil(data.total_hits / 20)
-    const foundList = getList(listId)
+    const foundList = getListFromId(listId)
 
     const options = []
     if (data.hits.length == 0) {
@@ -474,7 +498,7 @@ async function modrinthMenu(listId, page, query, cursor) {
 
 let modsForRemoval = []
 async function removeModsMenu(listId, cursor) {
-    const foundList = getList(listId)
+    const foundList = getListFromId(listId)
     const data = await dataFromIds(foundList.mods)
 
     const options = []
@@ -590,7 +614,7 @@ async function downloadMenu() {
 }
 
 async function downloadSelectionMenu (listId) {
-    const foundList = getList(listId)
+    const foundList = getListFromId(listId)
 
     const verTypeSelection = await select({
         message: `(${chalk.bold.italic(foundList.name)}) Select what versions you want to choose from: \n`,
@@ -599,13 +623,13 @@ async function downloadSelectionMenu (listId) {
             {name: 'Snapshots', value: 'snapshot'},
             {name: 'Old Versions (beta/alpha)', value: 'old'},
             new Separator(),
-            RETURN_BTN,
+            CANCEL_BTN,
             new Separator()
         ],
         pageSize: 6
     }, {clearPromptOnDone: true})
 
-    if (verTypeSelection == "return") {
+    if (verTypeSelection == "cancel") {
         return await downloadMenu()
     }
 
@@ -626,17 +650,48 @@ async function downloadSelectionMenu (listId) {
     }
 
     const verSelection = await select ({
-        message: `(${chalk.bold.italic(foundList.name)}) Choose a version to download mods for:`,
+        message: `(${chalk.bold.italic(foundList.name)}) Choose a version to download mods for: \n`,
         choices: [
             new Separator(),
             ...parsedVers,
             new Separator(),
-            RETURN_BTN
+            CANCEL_BTN
         ],
         pageSize: 15
     }, {clearPromptOnDone: true})
     
-    return await downloadMenu()
+    if (verSelection == "cancel") {
+        return await downloadMenu()
+    }
+
+    const loaders = await getLoaders()
+    const parsedLoaders = []
+    for (let loader of loaders) {
+        parsedLoaders.push({name: loader, value: loader})
+    }
+
+    const loaderSelection = await select ({
+        message: `(${chalk.bold.italic(foundList.name)}) Choose a loader you want to download mods for: \n`,
+        choices: [
+            new Separator(),
+            ...parsedLoaders,
+            new Separator(),
+            CANCEL_BTN
+        ]
+    }, {clearPromptOnDone: true})
+
+    if (loaderSelection == "cancel") {
+        return await downloadMenu()
+    }
+
+    return await handleDownload (verSelection, loaderSelection, listId)
+}
+
+async function handleDownload (ver, loader, listId) {
+    const list = getListFromId(listId)
+    
+    // get available mods for ver
+    
 }
 
 
