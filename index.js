@@ -26,6 +26,8 @@ const config = new Conf({
 //  \__,_|\__|_|_|          
 // Util
 
+const RETURN_BTN = {name: chalk.bold.italic('Return'), value: 'return'}
+
 async function validateListName(name) {
     // initial validation
     if (name.trim() === "") {
@@ -203,7 +205,7 @@ async function optionsMenu() {
                 value: 'downloadPath'
             },
             new Separator(),
-            {name: 'Return', value: 'return'}
+            RETURN_BTN
         ]
     }, { clearPromptOnDone: true })
 
@@ -246,7 +248,7 @@ async function listsMenu() {
         new Separator(),
         { name: chalk.italic('Create List'), value: 'create' },
         new Separator(),
-        { name: chalk.italic('Return'), value: 'return' },
+        RETURN_BTN,
     ] // merge list options with static options
 
     const selection = await select({
@@ -291,7 +293,7 @@ async function viewList(listId) {
             { name: 'Change Name', value: 'edit' },
             { name: 'Delete List', value: 'delete' },
             new Separator(),
-            { name: 'Return', value: 'return' },
+            RETURN_BTN,
         ],
         pageSize: 13
     }, { clearPromptOnDone: true })
@@ -334,7 +336,7 @@ async function viewMods(listId) {
         choices: [
             ...options,
             new Separator(),
-            { name: chalk.bold.italic('Return'), value: 'return' },
+            RETURN_BTN,
             new Separator()
         ],
         pageSize: 13
@@ -364,7 +366,7 @@ async function addModsMenu(listId) {
             { name: 'All Modrinth Mods', value: 'all' },
             { name: 'Search Modrinth', value: 'search' },
             new Separator(),
-            { name: 'Return', value: 'return' }
+            RETURN_BTN
         ],
     }, { clearPromptOnDone: true })
 
@@ -420,7 +422,7 @@ async function modrinthMenu(listId, page, query, cursor) {
                 value: 'confirm',
                 disabled: !modrinthMenuSelection.length > 0
             },
-            { name: chalk.italic.bold('Return'), value: 'return' }
+            RETURN_BTN
         ],
         pageSize: 16,
         default: cursor
@@ -497,7 +499,7 @@ async function removeModsMenu(listId, cursor) {
                 value: 'confirm',
                 disabled: !modsForRemoval.length > 0
             },
-            { name: chalk.bold.italic('Return'), value: 'return' },
+            RETURN_BTN,
             new Separator()
         ],
         pageSize: 17,
@@ -574,7 +576,7 @@ async function downloadMenu() {
             new Separator(),
             ...listChoices,
             new Separator(),
-            { name: chalk.bold.italic('Return'), value: 'return' },
+            RETURN_BTN,
         ],
         pageSize: 13
     }, { clearPromptOnDone: true })
@@ -597,7 +599,7 @@ async function downloadSelectionMenu (listId) {
             {name: 'Snapshots', value: 'snapshot'},
             {name: 'Old Versions (beta/alpha)', value: 'old'},
             new Separator(),
-            {name: chalk.bold.italic('Return'), value: 'return'},
+            RETURN_BTN,
             new Separator()
         ],
         pageSize: 6
@@ -629,7 +631,7 @@ async function downloadSelectionMenu (listId) {
             new Separator(),
             ...parsedVers,
             new Separator(),
-            {name: chalk.bold.italic('Return'), value: 'return'}
+            RETURN_BTN
         ],
         pageSize: 15
     }, {clearPromptOnDone: true})
