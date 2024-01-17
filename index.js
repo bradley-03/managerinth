@@ -145,6 +145,27 @@ function createList(name) {
     return newList
 }
 
+async function getGameVersions () {
+    const spinner = ora('Loading...').start()
+    try {
+        const res = await axios.get(`https://api.modrinth.com/v2/tag/game_version`)
+        const output = {
+            snapshot: [],
+            release: [],
+            beta: [],
+            alpha: [],
+        }
+
+        for (let ver of res.data) {
+            output[ver["version_type"]].push(ver.version)
+        }
+        spinner.stop()
+        return output
+    } catch (e) {
+        spinner.fail("Couldn't get game versions!")
+        return await mainMenu()
+    }
+}
 
 
 //  _ __ ___   ___ _  __ _   _ ___ 
@@ -182,10 +203,7 @@ async function optionsMenu() {
                 value: 'downloadPath'
             },
             new Separator(),
-            {
-                name: 'Return',
-                value: 'return'
-            }
+            {name: 'Return', value: 'return'}
         ]
     }, { clearPromptOnDone: true })
 
@@ -525,6 +543,14 @@ async function removeModsMenu(listId, cursor) {
     }
 }
 
+
+
+//      _                     _                 _     
+//     | |                   | |               | |    
+//   __| | _____      ___ __ | | ___   __ _  __| |___ 
+//  / _` |/ _ \ \ /\ / / '_ \| |/ _ \ / _` |/ _` / __|
+// | (_| | (_) \ V  V /| | | | | (_) | (_| | (_| \__ \
+//  \__,_|\___/ \_/\_/ |_| |_|_|\___/ \__,_|\__,_|___/
 // Downloads
 
 async function downloadMenu() {
@@ -548,7 +574,7 @@ async function downloadMenu() {
             new Separator(),
             ...listChoices,
             new Separator(),
-            { name: 'Return', value: 'return' },
+            { name: chalk.bold.italic('Return'), value: 'return' },
         ],
         pageSize: 13
     }, { clearPromptOnDone: true })
@@ -561,38 +587,44 @@ async function downloadMenu() {
     return await mainMenu()
 }
 
-let availableVersions = {
-    snapshots: [],
-    prerelease: [],
-    full: [],
-}
 async function downloadSelectionMenu (listId) {
     const foundList = getList(listId)
-    const modsInfo = await dataFromIds(foundList.mods)
 
-    // push all supported versions
-    for (let mod of modsInfo) {
-        for (let ver of mod["game_versions"]) {
-            if (ver.includes("w") && !availableVersions.snapshots.includes(ver)) {
-                availableVersions.snapshots.push(ver)
-            } else if (ver.includes("pre") || ver.includes("rc") && !availableVersions.prerelease.includes(ver)) {
-                availableVersions.prerelease.push(ver)
-            } else if (!availableVersions.full.includes(ver)) {
-                availableVersions.full.push(ver)
-            }
+    const verTypeSelection = await select({
+        message: `(${chalk.bold.italic(foundList.name)}) Select what versions you want to choose from: \n`,
+        choices: [
+            {name: 'Full Releases', value: 'release'},
+            {name: 'Snapshots', value: 'snapshot'},
+            {name: 'Old Versions (beta/alpha)', value: 'old'},
+            new Separator(),
+            {name: chalk.bold.italic('Return'), value: 'return'},
+            new Separator()
+        ],
+        pageSize: 6
+    }, {clearPromptOnDone: true})
+
+    if (verTypeSelection == "return") {
+        return await downloadMenu()
+    }
+
+    const versions = await getGameVersions()
+    const parsedVers = []
+
+    if (verTypeSelection == "old") {
+        for (let ver of versions.beta) {
+            parsedVers.push({name: ver, value: ver})
+        }
+        for (let ver of versions.alpha) {
+            parsedVers.push({name: ver, value: ver})
+        }
+    } else {
+        for (let ver of versions[verTypeSelection]) {
+            parsedVers.push({name: ver, value: ver})
         }
     }
-    // parse those versions
-    // let parsedVers = []
-    // for (let ver of availableVersions) {
-    //     parsedVers.push({
-    //         name: ver
-    //     })
-    // }
-    console.log(availableVersions)
 
     const verSelection = await select ({
-        message: 'Choose a version to download mods for:',
+        message: `(${chalk.bold.italic(foundList.name)}) Choose a version to download mods for:`,
         choices: [
             new Separator(),
             ...parsedVers,
