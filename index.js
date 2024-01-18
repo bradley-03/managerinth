@@ -105,7 +105,7 @@ async function getModrinth(page, query) {
         spinner.stop()
         return res.data
     } catch (e) {
-        spinner.fail('Something went wrong!')
+        spinner.fail("Couldn't load modrinth results!")
         return await listsMenu()
     }
 }
@@ -121,7 +121,7 @@ async function dataFromIds(ids) {
         spinner.stop()
         return res.data
     } catch (e) {
-        spinner.fail('Something went wrong!')
+        spinner.fail("Couldn't get ID data!")
         return await listsMenu()
     }
 }
@@ -204,6 +204,47 @@ async function getCompatibleMods (version, loader, modList) {
     }
 
     return compatibleMods
+}
+
+// return only versions that mods support
+async function getCompatibleVersions (modList, category) {
+    const allGameVersions = await getGameVersions()
+    const modData = await dataFromIds(modList)
+    const output = []
+    const validVers = []
+
+    // iterate over mod versions and push to arr
+    for (let mod of modData) {
+        for (let ver of mod["game_versions"]) {
+            if (!validVers.includes(ver)) {
+                validVers.push(ver)
+            }
+        }
+    }
+
+    // parse category
+    if (category == "old") {
+        for (let ver of allGameVersions["beta"]) {
+            if (validVers.includes(ver)) {
+                output.push(ver)
+            }
+        }
+        for (let ver of allGameVersions["alpha"]) {
+            if (validVers.includes(ver)) {
+                output.push(ver)
+            }
+        }
+        return output
+    }
+
+    // iterate all versions and push valid ones
+    for (let ver of allGameVersions[category]) {
+        if (validVers.includes(ver)) {
+            output.push(ver)
+        }
+    }
+
+    return output
 }
 
 
@@ -647,20 +688,14 @@ async function downloadSelectionMenu (listId) {
         return await downloadMenu()
     }
 
-    const versions = await getGameVersions()
+    const versions = await getCompatibleVersions(foundList.mods, verTypeSelection)
     const parsedVers = []
 
-    if (verTypeSelection == "old") {
-        for (let ver of versions.beta) {
-            parsedVers.push({name: ver, value: ver})
-        }
-        for (let ver of versions.alpha) {
-            parsedVers.push({name: ver, value: ver})
-        }
-    } else {
-        for (let ver of versions[verTypeSelection]) {
-            parsedVers.push({name: ver, value: ver})
-        }
+    if (versions.length == 0) {
+        parsedVers.push({name: ' ', disabled: 'No mods in the list support these versions!'})
+    }
+    for (let ver of versions) {
+        parsedVers.push({name: ver, value: ver})
     }
 
     const verSelection = await select ({
@@ -706,8 +741,8 @@ async function handleDownload (ver, loader, listId) {
     const list = getListFromId(listId)
 
     // get available mods for ver
-    const compatibleMods = await getCompatibleMods(ver, loader, list.mods)
-    console.log(compatibleMods)
+    // const compatibleMods = await getCompatibleMods(ver, loader, list.mods)
+    // console.log(compatibleMods)
 }
 
 
