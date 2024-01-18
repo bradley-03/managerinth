@@ -189,8 +189,22 @@ async function getLoaders () {
     }
 }
 
-// get available mods for download
+// get compatible mods with version and loader from list
+async function getCompatibleMods (version, loader, modList) {
+    const mods = await dataFromIds(modList)
 
+    const compatibleMods = []
+    // filter results and push to arr
+    for (let mod of mods) {
+        if (mod["game_versions"].includes(version)) {
+            if (mod["loaders"].includes(loader)) {
+                compatibleMods.push(mod["id"])
+            }
+        }
+    }
+
+    return compatibleMods
+}
 
 
 
@@ -677,7 +691,8 @@ async function downloadSelectionMenu (listId) {
             ...parsedLoaders,
             new Separator(),
             CANCEL_BTN
-        ]
+        ],
+        pageSize: 15
     }, {clearPromptOnDone: true})
 
     if (loaderSelection == "cancel") {
@@ -689,9 +704,10 @@ async function downloadSelectionMenu (listId) {
 
 async function handleDownload (ver, loader, listId) {
     const list = getListFromId(listId)
-    
+
     // get available mods for ver
-    
+    const compatibleMods = await getCompatibleMods(ver, loader, list.mods)
+    console.log(compatibleMods)
 }
 
 
