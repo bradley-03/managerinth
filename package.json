@@ -9,15 +9,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bradley-03/modrinth-manage.git"
+    "url": "git+https://github.com/bradley-03/managerinth.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/bradley-03/modrinth-manage/issues"
+    "url": "https://github.com/bradley-03/managerinth/issues"
   },
-  "homepage": "https://github.com/bradley-03/modrinth-manage#readme",
+  "homepage": "https://github.com/bradley-03/managerinth#readme",
   "dependencies": {
     "@inquirer/prompts": "^3.3.0",
     "axios": "^1.6.5",
