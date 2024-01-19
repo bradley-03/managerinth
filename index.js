@@ -28,8 +28,8 @@ const config = new Conf({
 //  \__,_|\__|_|_|          
 // Util
 
-const RETURN_BTN = { name: chalk.bold.italic('Return'), value: 'return' }
-const CANCEL_BTN = { name: chalk.bold.italic('Cancel'), value: 'cancel' }
+const RETURN_BTN = { name: chalk.bold('Return'), value: 'return' }
+const CANCEL_BTN = { name: chalk.bold('Cancel'), value: 'cancel' }
 
 async function validateListName(name) {
     // initial validation
@@ -369,6 +369,7 @@ async function beginDownload(list, ver, loader, listName) {
 }
 
 
+
 //  _ __ ___   ___ _  __ _   _ ___ 
 // | '_ ` _ \ / _ \ '_ \| | | / __|
 // | | | | | |  __/ | | | |_| \__ \
@@ -440,12 +441,11 @@ async function listsMenu() {
             description: chalk.dim(`| ${modList.name} | ${modList.modCount} mods |`)
         })
     } // parse for choices
-
     const choices = [
         new Separator(),
         ...modListsOptions,
         new Separator(),
-        { name: chalk.italic('Create List'), value: 'create' },
+        { name: chalk.bold('Create List'), value: 'create' },
         new Separator(),
         RETURN_BTN,
     ] // merge list options with static options
@@ -695,7 +695,7 @@ async function removeModsMenu(listId, cursor) {
             ...options,
             new Separator(),
             {
-                name: chalk.bold.italic('Confirm'),
+                name: chalk.bold('Confirm'),
                 value: 'confirm',
                 disabled: !modsForRemoval.length > 0
             },
@@ -883,8 +883,6 @@ async function confirmDownload(ver, loader, listId) {
 
     return await beginDownload(compatibleMods, ver, loader, list.name)
 }
-
-
 
 // Initialize
 async function main() {
