@@ -247,7 +247,66 @@ async function getCompatibleVersions (modList, category) {
     return output
 }
 
+async function getVersion (modId, ver, loader) {
+    const spinner = ora(`Fetching mod version...`).start()
+    try {
+        const res = await axios.get(
+            `https://api.modrinth.com/v2/project/${modId}/version`,
+            { params: 
+                { 
+                    game_versions: JSON.stringify([ver]),
+                    loaders: JSON.stringify([loader])
+                } 
+            }
+        )
+        spinner.succeed('Fetched mod.')
+        return res.data[0]
+    } catch (e) {
+        spinner.fail("Couldn't fetch mod version!")
+        return null
+    }
+}
 
+async function getAllDownloadURLs (mods, ver, loader) {
+    const urls = []
+    const dependencyIds = []
+    try {
+        for (let mod of mods) {
+            const versionData = await getVersion(mod, ver, loader)
+
+            if (versionData && versionData["files"]) {
+                // push primary file to urls
+                for (let file of versionData["files"]) {
+                    if (file.primary == true) {
+                        urls.push(file.url)
+                    }
+                } 
+                // fetch dependencies
+                if (versionData["dependencies"]) {
+                    for (let dependency of versionData["dependencies"]) {
+                        if (dependency["dependency_type"] == "required") {
+                            if (!dependencyIds.includes(dependency["project_id"])) {
+                                dependencyIds.push(dependency["project_id"])
+                            }
+                        }
+                    }
+                }
+                
+            }
+        }
+        console.log({urls: urls, dependencies: dependencyIds})
+    } catch (e) {
+        console.log(e)
+    }    
+}
+
+// grab list of correct files for each mod then download them
+async function beginDownload (ver, loader, list) {
+    const downloadUrls = []
+    const modData = await dataFromIds(list)
+
+
+}
 
 
 //  _ __ ___   ___ _  __ _   _ ___ 
@@ -427,6 +486,7 @@ async function viewMods(listId) {
         return await viewList(listId)
     }
 }
+
 
 
 
@@ -625,10 +685,6 @@ async function removeModsMenu(listId, cursor) {
     }
 }
 
-async function beginDownload (ver, loader, list) {
-
-}
-
 
 
 //      _                     _                 _     
@@ -763,6 +819,8 @@ async function confirmDownload (ver, loader, listId) {
     if (dlConfirmation == false) {
         return await downloadSelectionMenu(listId)
     }
+
+    await getAllDownloadURLs(compatibleMods, ver, loader)
 
 }
 
