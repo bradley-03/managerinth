@@ -4,6 +4,8 @@ import axios from "axios"
 import { nanoid } from "nanoid"
 import chalk from 'chalk';
 import ora from "ora"
+import fs from 'fs/promises'
+import { createWriteStream } from 'fs'
 
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -26,8 +28,8 @@ const config = new Conf({
 //  \__,_|\__|_|_|          
 // Util
 
-const RETURN_BTN = {name: chalk.bold.italic('Return'), value: 'return'}
-const CANCEL_BTN = {name: chalk.bold.italic('Cancel'), value: 'cancel'}
+const RETURN_BTN = { name: chalk.bold.italic('Return'), value: 'return' }
+const CANCEL_BTN = { name: chalk.bold.italic('Cancel'), value: 'cancel' }
 
 async function validateListName(name) {
     // initial validation
@@ -148,7 +150,7 @@ function createList(name) {
     return newList
 }
 
-async function getGameVersions () {
+async function getGameVersions() {
     const spinner = ora('Loading...').start()
     try {
         const res = await axios.get(`https://api.modrinth.com/v2/tag/game_version`)
@@ -170,7 +172,7 @@ async function getGameVersions () {
     }
 }
 
-async function getLoaders () {
+async function getLoaders() {
     const spinner = ora('Loading...').start()
     try {
         const res = await axios.get(`https://api.modrinth.com/v2/tag/loader`)
@@ -190,7 +192,7 @@ async function getLoaders () {
 }
 
 // get compatible mods with version and loader from list
-async function getCompatibleMods (version, loader, modList) {
+async function getCompatibleMods(version, loader, modList) {
     const mods = await dataFromIds(modList)
 
     const compatibleMods = []
@@ -207,7 +209,7 @@ async function getCompatibleMods (version, loader, modList) {
 }
 
 // return only versions that mods support
-async function getCompatibleVersions (modList, category) {
+async function getCompatibleVersions(modList, category) {
     const allGameVersions = await getGameVersions()
     const modData = await dataFromIds(modList)
     const output = []
@@ -247,19 +249,20 @@ async function getCompatibleVersions (modList, category) {
     return output
 }
 
-async function getVersion (modId, ver, loader) {
-    const spinner = ora(`Fetching mod version...`).start()
+async function getVersion(modId, ver, loader) {
+    const spinner = ora(`Fetching mod ${modId}...`).start()
     try {
         const res = await axios.get(
             `https://api.modrinth.com/v2/project/${modId}/version`,
-            { params: 
-                { 
+            {
+                params:
+                {
                     game_versions: JSON.stringify([ver]),
                     loaders: JSON.stringify([loader])
-                } 
+                }
             }
         )
-        spinner.succeed('Fetched mod.')
+        spinner.succeed(`Fetched ${res.data[0].name}`)
         return res.data[0]
     } catch (e) {
         spinner.fail("Couldn't fetch mod version!")
@@ -267,9 +270,11 @@ async function getVersion (modId, ver, loader) {
     }
 }
 
-async function getAllDownloadURLs (mods, ver, loader) {
+async function getAllDownloadURLs(mods, ver, loader) {
     const urls = []
     const dependencyIds = []
+    const output = []
+
     try {
         for (let mod of mods) {
             const versionData = await getVersion(mod, ver, loader)
@@ -279,9 +284,10 @@ async function getAllDownloadURLs (mods, ver, loader) {
                 for (let file of versionData["files"]) {
                     if (file.primary == true) {
                         urls.push(file.url)
+                        output.push({ url: file.url, filename: file.filename })
                     }
-                } 
-                // fetch dependencies
+                }
+                // get dependency ids
                 if (versionData["dependencies"]) {
                     for (let dependency of versionData["dependencies"]) {
                         if (dependency["dependency_type"] == "required") {
@@ -291,21 +297,75 @@ async function getAllDownloadURLs (mods, ver, loader) {
                         }
                     }
                 }
-                
             }
         }
-        console.log({urls: urls, dependencies: dependencyIds})
+        // get dependency urls
+        for (let dependency of dependencyIds) {
+            const dependencyVersionData = await getVersion(dependency, ver, loader)
+            if (dependencyVersionData && dependencyVersionData["files"]) {
+                for (let file of dependencyVersionData["files"]) {
+                    if (file.primary == true) {
+                        if (!urls.includes(file.url)) {
+                            urls.push(file.url)
+                            output.push({ url: file.url, filename: file.filename })
+                        }
+                    }
+                }
+            }
+        }
+
+        return output
     } catch (e) {
-        console.log(e)
-    }    
+        return null
+    }
+}
+
+async function downloadFile(data, location) {
+    const spinner = ora(`Downloading ${data.filename}`).start()
+    try {
+        const res = await axios.get(
+            data.url,
+            { responseType: 'stream' }
+        )
+
+        const writer = createWriteStream(location)
+        res.data.pipe(writer)
+
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve)
+            writer.on('error', reject)
+        })
+        spinner.succeed(`${data.filename} Downloaded.`)
+    } catch (e) {
+        spinner.fail("Couldn't download mod.")
+    }
 }
 
 // grab list of correct files for each mod then download them
-async function beginDownload (ver, loader, list) {
-    const downloadUrls = []
-    const modData = await dataFromIds(list)
+async function beginDownload(list, ver, loader, listName) {
+    const dlUrls = await getAllDownloadURLs(list, ver, loader)
+    console.clear()
 
+    const downloadPath = config.get('downloadPath')
+    const dlLocation = path.join(downloadPath, `${listName} ${loader} ${ver}`)
 
+    try {
+        try {
+            await fs.access(dlLocation)
+        } catch {
+            await fs.mkdir(dlLocation)
+        }
+        for (let dl of dlUrls) {
+            await downloadFile(dl, path.join(dlLocation, dl.filename))
+        }
+    } catch (e) {
+        console.clear()
+        console.log(chalk.red('Something went wrong! This is probably due to your filepath.'))
+        return await downloadMenu()
+    }
+    console.clear()
+    console.log(chalk.green("Your mods have been downloaded!"))
+    return await downloadMenu()
 }
 
 
@@ -721,6 +781,7 @@ async function downloadMenu() {
         pageSize: 13
     }, { clearPromptOnDone: true })
 
+    console.clear()
     if (listSelection.includes('list-')) {
         const listId = listSelection.substring(5, listSelection.length)
         return await downloadSelectionMenu(listId)
@@ -729,21 +790,21 @@ async function downloadMenu() {
     return await mainMenu()
 }
 
-async function downloadSelectionMenu (listId) {
+async function downloadSelectionMenu(listId) {
     const foundList = getListFromId(listId)
 
     const verTypeSelection = await select({
         message: `(${chalk.bold.italic(foundList.name)}) Select what versions you want to choose from: \n`,
         choices: [
-            {name: 'Full Releases', value: 'release'},
-            {name: 'Snapshots', value: 'snapshot'},
-            {name: 'Old Versions (beta/alpha)', value: 'old'},
+            { name: 'Full Releases', value: 'release' },
+            { name: 'Snapshots', value: 'snapshot' },
+            { name: 'Old Versions (beta/alpha)', value: 'old' },
             new Separator(),
             CANCEL_BTN,
             new Separator()
         ],
         pageSize: 6
-    }, {clearPromptOnDone: true})
+    }, { clearPromptOnDone: true })
 
     if (verTypeSelection == "cancel") {
         console.clear() // clear error message if it is there
@@ -755,13 +816,13 @@ async function downloadSelectionMenu (listId) {
     const parsedVers = []
 
     if (versions.length == 0) {
-        parsedVers.push({name: ' ', disabled: 'No mods in the list support these versions!'})
+        parsedVers.push({ name: ' ', disabled: 'No mods in the list support these versions!' })
     }
     for (let ver of versions) {
-        parsedVers.push({name: ver, value: ver})
+        parsedVers.push({ name: ver, value: ver })
     }
 
-    const verSelection = await select ({
+    const verSelection = await select({
         message: `(${chalk.bold.italic(foundList.name)}) Choose a version to download mods for: \n`,
         choices: [
             new Separator(),
@@ -770,8 +831,8 @@ async function downloadSelectionMenu (listId) {
             CANCEL_BTN
         ],
         pageSize: 15
-    }, {clearPromptOnDone: true})
-    
+    }, { clearPromptOnDone: true })
+
     if (verSelection == "cancel") {
         return await downloadMenu()
     }
@@ -779,10 +840,10 @@ async function downloadSelectionMenu (listId) {
     const loaders = await getLoaders()
     const parsedLoaders = []
     for (let loader of loaders) {
-        parsedLoaders.push({name: loader, value: loader})
+        parsedLoaders.push({ name: loader, value: loader })
     }
 
-    const loaderSelection = await select ({
+    const loaderSelection = await select({
         message: `(${chalk.bold.italic(foundList.name)}) Choose a loader you want to download mods for: \n`,
         choices: [
             new Separator(),
@@ -791,21 +852,21 @@ async function downloadSelectionMenu (listId) {
             CANCEL_BTN
         ],
         pageSize: 15
-    }, {clearPromptOnDone: true})
+    }, { clearPromptOnDone: true })
 
     if (loaderSelection == "cancel") {
         return await downloadMenu()
     }
 
-    return await confirmDownload (verSelection, loaderSelection, listId)
+    return await confirmDownload(verSelection, loaderSelection, listId)
 }
 
-async function confirmDownload (ver, loader, listId) {
+async function confirmDownload(ver, loader, listId) {
     const list = getListFromId(listId)
 
     // get available mods for ver
     const compatibleMods = await getCompatibleMods(ver, loader, list.mods)
-    
+
     // handle no compatibility
     if (compatibleMods.length == 0) {
         console.log(chalk.red("There are no compatible mods with the version / loader you chose."))
@@ -814,14 +875,13 @@ async function confirmDownload (ver, loader, listId) {
 
     const dlConfirmation = await confirm({
         message: `You can download ${chalk.bold.green(compatibleMods.length)}/${chalk.bold.green(list.modCount)} mods from ${chalk.bold.green(list.name)}. Are you sure you want to download them and their dependencies?`,
-    }, {clearPromptOnDone: true})
+    }, { clearPromptOnDone: true })
 
     if (dlConfirmation == false) {
         return await downloadSelectionMenu(listId)
     }
 
-    await getAllDownloadURLs(compatibleMods, ver, loader)
-
+    return await beginDownload(compatibleMods, ver, loader, list.name)
 }
 
 
