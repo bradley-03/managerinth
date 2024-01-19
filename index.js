@@ -102,7 +102,7 @@ async function getModrinth(page, query) {
     try {
         const res = await axios.get(
             `https://api.modrinth.com/v2/search`,
-            { params: { query: query, limit: 20, offset: page * 20 } }
+            { params: { query: query, limit: 20, offset: page * 20, facets: JSON.stringify([["project_type:mod"]]) } }
         )
         spinner.stop()
         return res.data
