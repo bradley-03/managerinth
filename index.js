@@ -249,6 +249,7 @@ async function getCompatibleVersions (modList, category) {
 
 
 
+
 //  _ __ ___   ___ _  __ _   _ ___ 
 // | '_ ` _ \ / _ \ '_ \| | | / __|
 // | | | | | |  __/ | | | |_| \__ \
@@ -624,6 +625,10 @@ async function removeModsMenu(listId, cursor) {
     }
 }
 
+async function beginDownload (ver, loader, list) {
+
+}
+
 
 
 //      _                     _                 _     
@@ -685,9 +690,11 @@ async function downloadSelectionMenu (listId) {
     }, {clearPromptOnDone: true})
 
     if (verTypeSelection == "cancel") {
+        console.clear() // clear error message if it is there
         return await downloadMenu()
     }
 
+    console.clear() // clear error message if it is there
     const versions = await getCompatibleVersions(foundList.mods, verTypeSelection)
     const parsedVers = []
 
@@ -734,15 +741,29 @@ async function downloadSelectionMenu (listId) {
         return await downloadMenu()
     }
 
-    return await handleDownload (verSelection, loaderSelection, listId)
+    return await confirmDownload (verSelection, loaderSelection, listId)
 }
 
-async function handleDownload (ver, loader, listId) {
+async function confirmDownload (ver, loader, listId) {
     const list = getListFromId(listId)
 
     // get available mods for ver
-    // const compatibleMods = await getCompatibleMods(ver, loader, list.mods)
-    // console.log(compatibleMods)
+    const compatibleMods = await getCompatibleMods(ver, loader, list.mods)
+    
+    // handle no compatibility
+    if (compatibleMods.length == 0) {
+        console.log(chalk.red("There are no compatible mods with the version / loader you chose."))
+        return await downloadSelectionMenu(listId)
+    }
+
+    const dlConfirmation = await confirm({
+        message: `You can download ${chalk.bold.green(compatibleMods.length)}/${chalk.bold.green(list.modCount)} mods from ${chalk.bold.green(list.name)}. Are you sure you want to download them and their dependencies?`,
+    }, {clearPromptOnDone: true})
+
+    if (dlConfirmation == false) {
+        return await downloadSelectionMenu(listId)
+    }
+
 }
 
 
