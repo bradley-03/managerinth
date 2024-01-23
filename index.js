@@ -353,6 +353,7 @@ async function beginDownload(list, ver, loader, listName) {
         try {
             await fs.access(dlLocation)
         } catch {
+            await fs.mkdir(downloadPath)
             await fs.mkdir(dlLocation)
         }
         for (let dl of dlUrls) {
